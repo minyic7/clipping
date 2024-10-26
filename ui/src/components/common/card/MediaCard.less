@@ -1,0 +1,57 @@
+.media-card {
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;  // Ensure the media is displayed above the info
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;  // Make sure the card itself is positioned relative for absolute positioning of the overlay
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .media {
+    width: 100%;  // Media takes full width of the card's provided width
+    height: auto;  // Allow height to be variable
+    object-fit: cover;
+  }
+
+  .media-info {
+    position: absolute;  // Position on top of the media
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);  // Semi-transparent overlay
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    opacity: 0;  // Invisible by default
+    transition: opacity 0.3s ease-in-out;
+    padding: 16px;
+    box-sizing: border-box;
+    text-align: center;
+
+    h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      color: #fff;  // White color for visibility on dark overlay
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: #ddd;  // Light color for visibility on dark overlay
+    }
+  }
+
+  &:hover .media-info {
+    opacity: 1;  // Show the overlay on hover
+  }
+}

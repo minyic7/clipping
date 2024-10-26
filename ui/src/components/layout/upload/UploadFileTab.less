@@ -1,0 +1,45 @@
+.upload-file-tab {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 2px dashed darkgrey; // Add a dashed border to indicate the drop zone
+  box-sizing: border-box; // Ensure border does not add to padding and content dimensions
+  align-items: center; // Center align content horizontally
+  gap: 10px; // Add some space between elements inside the drop zone
+  position: relative;
+}
+
+.reminder {
+  height: 25vh;
+  display: flex; // Use flexbox to center the text
+  justify-content: center; // Center horizontally
+  align-items: center; // Center vertically
+  text-align: center;
+  background-color: rgba(255, 255, 255, 0.8); // Light background for better visibility
+  color: gray; // Different color for visibility on the drop zone
+  z-index: 10; // Ensure it's on top of other content
+  transition: opacity 0.5s ease; // Add a transition effect
+}
+
+.submit-container {
+  display: flex;
+  justify-content: flex-end; // Align the button to the right
+  padding: 10px; // Add padding if needed for aesthetics
+}
+
+.file-list {
+  margin-top: 20px;
+
+  h3 {
+    margin-bottom: 10px;
+  }
+
+  ul {
+    list-style-type: none;
+    padding: 0;
+
+    li {
+      margin-bottom: 5px;
+    }
+  }
+}
