@@ -37,9 +37,9 @@ conda activate clipping
 
 #### Setup R2 Credential
 ```shell
-conda env config vars set TOKEN_VALUE='g_atoAsPwZqk1imAanUbAiq1yQPWmL'
-conda env config vars set ACCESS_KEY_ID='a05a60f68c70c23977f17b0c758c2d1d'
-conda env config vars set SECRET_ACCESS_KEY='0261da4f6480d2f2f332e39aef35066687e5c521ecdff373e6cdcee62983bd0a'
+conda env config vars set TOKEN_VALUE='TOKEN_VALUE'
+conda env config vars set ACCESS_KEY_ID='ACCESS_KEY_ID'
+conda env config vars set SECRET_ACCESS_KEY='SECRET_ACCESS_KEY'
 
 conda deactivate
 conda activate clipping
