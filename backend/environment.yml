@@ -6,13 +6,16 @@ dependencies:
   - python=3.11.9
   - pandas
   - numpy
-  - flask
   - ipykernel
   - ipython
   - jupyter
+  - sqlite
   - pip
   - pip:
       - boto3
       - botocore
       - omegaconf
-      - flask_sqlalchemy
+      - django
+      - mysqlclient
+      - djangorestframework
+

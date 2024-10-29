@@ -1,3 +1,0 @@
-services:
-  clipping:
-    max_pre_signed_url: 10

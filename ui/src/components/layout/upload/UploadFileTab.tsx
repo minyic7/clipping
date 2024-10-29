@@ -3,11 +3,14 @@ import "./UploadFileTab.less"; // Import the LESS stylesheet
 import Masonry from "@/components/common/masonry/Masonry.tsx"; // Import the Masonry component
 import { Item, MediaItem } from "@/components/types/types.ts";
 import { Button } from "antd"; // Assuming you're using Ant Design. Adjust as necessary.
+import { getPreSignedUrls, uploadItemsUsingPreSignedUrls } from "@/services/services.ts";
+import { PresignedUrlResponse, UploadStatus } from "@/services/types.ts";
 
 const UploadFileTab: React.FC = () => {
     const dropzoneRef = useRef<HTMLDivElement>(null);
     const [items, setItems] = useState<Item[]>([]);
     const [invalidFiles, setInvalidFiles] = useState<string[]>([]);
+    const [uploadStatuses, setUploadStatuses] = useState<UploadStatus[]>([]); // Define uploadStatuses state
 
     const isImageOrVideo = (file: File) => {
         return file.type.startsWith("image/") || file.type.startsWith("video/");
@@ -47,7 +50,7 @@ const UploadFileTab: React.FC = () => {
         const validFiles = droppedFiles.filter(isImageOrVideo);
         const invalidFiles = droppedFiles.filter(file => !isImageOrVideo(file));
 
-        const newItems: Item[] = await Promise.all(validFiles.map(async (file, _) => {
+        const newItems: Item[] = await Promise.all(validFiles.map(async (file) => {
             let dimensions = { width: 100, height: 100 }; // Default dimensions
             try {
                 if (file.type.startsWith("image/")) {
@@ -81,9 +84,21 @@ const UploadFileTab: React.FC = () => {
         event.preventDefault();
     };
 
-    const handleSubmit = () => {
-        // Handle submit logic here
-        console.log("Submit clicked!", items);
+    const handleSubmit = async () => {
+        try {
+            // Step 1: Get Pre-Signed URLs
+            const preSignedUrls: PresignedUrlResponse[] = await getPreSignedUrls(items);
+            console.log('Received pre-signed URLs:', preSignedUrls);
+
+            // Step 2: Upload Items to Pre-Signed URLs
+            const uploadStatuses = await uploadItemsUsingPreSignedUrls(items, preSignedUrls);
+            setUploadStatuses(uploadStatuses); // Use the setter function to update state
+            console.log('Upload statuses:', uploadStatuses);
+        } catch (error) {
+            console.error('Error during submission:', error);
+        }
+
+        console.log('Submit clicked!');
     };
 
     return (
@@ -125,6 +140,19 @@ const UploadFileTab: React.FC = () => {
                     Submit
                 </Button>
             </div>
+
+            {uploadStatuses.length > 0 && (
+                <div className="file-list">
+                    <h3>Upload Statuses</h3>
+                    <ul>
+                        {uploadStatuses.map((status, index) => (
+                            <li key={index}>
+                                {`Object Key: ${status.object_key}, Status: ${status.status}`}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
         </>
     );
 };
