@@ -10,11 +10,12 @@ dependencies:
   - ipython
   - jupyter
   - sqlite
-  - mysqlclient
   - pip
   - pip:
       - boto3
       - botocore
       - omegaconf
+      - mysqlclient >= 2.1.0
       - django
       - djangorestframework
+      - djangorestframework-simplejwt

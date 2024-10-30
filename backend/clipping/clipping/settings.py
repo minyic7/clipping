@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -81,7 +83,7 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
         "OPTIONS": {
-            "read_default_file": "clipping/my.cnf",
+            "read_default_file": "my.cnf",
         },
     }
 }
@@ -129,8 +131,22 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
-    # 'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler' # default
-    'EXCEPTION_HANDLER': 'utils.exceptions.global_exception_handler' # custom
+    'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler', # default
+    # 'EXCEPTION_HANDLER': 'utils.exceptions.global_exception_handler', # custom
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(seconds=3600),
+    'REFRESH_TOKEN_LIFETIME': timedelta(seconds=3600),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': False,
 }
 
 # add logger for testing
