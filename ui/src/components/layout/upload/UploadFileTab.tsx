@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useRef, useCallback } from "react";
 import "./UploadFileTab.less"; // Import the LESS stylesheet
 import Masonry from "@/components/common/masonry/Masonry.tsx"; // Import the Masonry component
 import { Item, MediaItem } from "@/components/types/types.ts";
@@ -6,11 +6,24 @@ import { Button } from "antd"; // Assuming you're using Ant Design. Adjust as ne
 import { getPreSignedUrls, uploadItemsUsingPreSignedUrls } from "@/services/services.ts";
 import { PresignedUrlResponse, UploadStatus } from "@/services/types.ts";
 
-const UploadFileTab: React.FC = () => {
+interface UploadFileTabProps {
+    items: Item[];
+    setItems: React.Dispatch<React.SetStateAction<Item[]>>;
+    invalidFiles: string[];
+    setInvalidFiles: React.Dispatch<React.SetStateAction<string[]>>;
+    uploadStatuses: UploadStatus[];
+    setUploadStatuses: React.Dispatch<React.SetStateAction<UploadStatus[]>>;
+}
+
+const UploadFileTab: React.FC<UploadFileTabProps> = ({
+                                                         items,
+                                                         setItems,
+                                                         invalidFiles,
+                                                         setInvalidFiles,
+                                                         uploadStatuses,
+                                                         setUploadStatuses
+                                                     }) => {
     const dropzoneRef = useRef<HTMLDivElement>(null);
-    const [items, setItems] = useState<Item[]>([]);
-    const [invalidFiles, setInvalidFiles] = useState<string[]>([]);
-    const [uploadStatuses, setUploadStatuses] = useState<UploadStatus[]>([]); // Define uploadStatuses state
 
     const isImageOrVideo = (file: File) => {
         return file.type.startsWith("image/") || file.type.startsWith("video/");
@@ -21,6 +34,9 @@ const UploadFileTab: React.FC = () => {
             const img = new Image();
             img.onload = () => {
                 resolve({ width: img.width, height: img.height });
+                if (img.src) {
+                    URL.revokeObjectURL(img.src);
+                }
             };
             img.onerror = () => {
                 reject(new Error('Error loading image'));
@@ -78,7 +94,7 @@ const UploadFileTab: React.FC = () => {
             ...prevInvalidFiles,
             ...invalidFiles.map(file => file.name)
         ]);
-    }, []);
+    }, [setItems, setInvalidFiles]);
 
     const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
