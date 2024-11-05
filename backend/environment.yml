@@ -19,3 +19,5 @@ dependencies:
       - django
       - djangorestframework
       - djangorestframework-simplejwt
+      - django-cors-headers
+      - python-decouple

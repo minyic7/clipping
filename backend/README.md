@@ -20,3 +20,6 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 # Append the parent of the parent directory to sys.path
 sys.path.append(project_root)
 ```
+
+
+To check use: `conda env config vars list`

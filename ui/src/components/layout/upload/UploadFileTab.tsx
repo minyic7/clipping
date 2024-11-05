@@ -3,7 +3,7 @@ import "./UploadFileTab.less"; // Import the LESS stylesheet
 import Masonry from "@/components/common/masonry/Masonry.tsx"; // Import the Masonry component
 import { Item, MediaItem } from "@/components/types/types.ts";
 import { Button } from "antd"; // Assuming you're using Ant Design. Adjust as necessary.
-import { getPreSignedUrls, uploadItemsUsingPreSignedUrls } from "@/services/services.ts";
+import { getPreSignedUrls, postUploadedItems, uploadItemsUsingPreSignedUrls } from "@/services/services.ts";
 import { PresignedUrlResponse, UploadStatus } from "@/services/types.ts";
 
 interface UploadFileTabProps {
@@ -84,7 +84,8 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
                 width: dimensions.width,
                 src: URL.createObjectURL(file),
                 title: file.name,
-                description: ""
+                description: "",
+                raw: file  // Put the actual file here for uploading later
             };
             return item;
         }));
@@ -101,6 +102,7 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
     };
 
     const handleSubmit = async () => {
+        console.log(items, '---------')
         try {
             // Step 1: Get Pre-Signed URLs
             const preSignedUrls: PresignedUrlResponse[] = await getPreSignedUrls(items);
@@ -110,6 +112,9 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
             const uploadStatuses = await uploadItemsUsingPreSignedUrls(items, preSignedUrls);
             setUploadStatuses(uploadStatuses); // Use the setter function to update state
             console.log('Upload statuses:', uploadStatuses);
+
+            // Step 3: Post items to the backend
+            await postUploadedItems(uploadStatuses);
         } catch (error) {
             console.error('Error during submission:', error);
         }

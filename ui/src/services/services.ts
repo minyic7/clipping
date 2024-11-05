@@ -1,10 +1,7 @@
-// src/services/services.ts
 import { apiRequest } from '@/services/setup.ts';
-import {PostObject, PresignedUrlResponse, UploadStatus} from '@/services/types.ts';
+import {FullApiResponse, PostObject, PresignedUrlResponse, UploadStatus} from '@/services/types.ts';
 import { Item } from "@/components/types/types.ts";
 import axios from 'axios';
-// import {sleep} from "@/services/utils.ts";
-
 
 /**
  * Function to request pre-signed URLs for a list of media items.
@@ -13,19 +10,19 @@ import axios from 'axios';
  */
 export const getPreSignedUrls = async (items: Item[]): Promise<PresignedUrlResponse[]> => {
     // Map the MediaItems to PostObjects using the title as the id
-    const postObjects: PostObject[] = items.map(item => ({ object_key: item.title }));
+    const postObjects: PostObject[] = items.map(item => ({ object_key: item.title, file_type: item.type }));
 
     // Send the request to the backend
-    const response = await apiRequest<PresignedUrlResponse[]>('/clipping/get_pre_signed_urls', {
+    const response: FullApiResponse<PresignedUrlResponse[]> = await apiRequest<PresignedUrlResponse[]>('get-pre-signed-urls/', {
         method: 'POST',
         data: postObjects
     });
 
-    if (!response.success) {
-        throw new Error(response.message);
+    if (!response.data.success) {
+        throw new Error(response.data.message);
     }
 
-    return response.data;
+    return response.data.data;
 };
 
 /**
@@ -38,10 +35,6 @@ export const uploadItemsUsingPreSignedUrls = async (
     items: Item[],
     preSignedUrls: PresignedUrlResponse[]
 ): Promise<UploadStatus[]> => {
-
-    // Sleep for 1 second before proceeding
-    // await sleep(1000);
-
     const uploadStatuses: UploadStatus[] = [];
 
     const remainingPreSignedUrls = [...preSignedUrls]; // Create a copy to mutate
@@ -62,20 +55,28 @@ export const uploadItemsUsingPreSignedUrls = async (
 
         try {
             // Send a PUT request to the pre-signed URL using Axios
-            const response = await axios.put(urlResponse.url, item);
+            console.log('item raw', item)
+            const response = await axios.put(urlResponse.pre_signed_url, item.raw, {
+                headers: {
+                    'Content-Type': urlResponse.content_type // Explicitly specify the Content-Type header
+                },
+                timeout: 5000 // Add a timeout if necessary
+            });
 
-            // Mark the status as success and store the HTTP status code and response message
+            // Update the item's object_key with the unique_object_key from the response
+            item.object_key = urlResponse.unique_object_key;
+
+            // Mark the status as success and store the HTTP status code, response message, and item
             uploadStatuses.push({
                 object_key: urlResponse.unique_object_key,
                 status: 'success',
+                uploaded_file: item,
                 httpStatusCode: response.status,
                 responseMessage: response.statusText
             });
         } catch (error: unknown) {
-            // Narrow down the error type
             if (axios.isAxiosError(error)) {
                 console.log('Axios error', error);
-                // Extract error details from AxiosError
                 const httpStatusCode = error.response?.status;
                 const responseMessage = error.response?.statusText;
                 const errorCode = error.code;
@@ -83,7 +84,6 @@ export const uploadItemsUsingPreSignedUrls = async (
 
                 console.error(`Axios Error uploading item with key ${urlResponse.unique_object_key}:`, error);
 
-                // Mark the status as error and store the error details
                 uploadStatuses.push({
                     object_key: urlResponse.unique_object_key,
                     status: 'error',
@@ -93,7 +93,6 @@ export const uploadItemsUsingPreSignedUrls = async (
                     errorMessage
                 });
             } else {
-                // Handle non-Axios errors
                 console.error(`Unknown error uploading item with key ${urlResponse.unique_object_key}:`, error);
 
                 uploadStatuses.push({
@@ -106,4 +105,29 @@ export const uploadItemsUsingPreSignedUrls = async (
     }
 
     return uploadStatuses;
+};
+
+/**
+ * Function to post successfully uploaded items to the backend.
+ * @param uploadStatuses - List of upload statuses after uploading items.
+ * @returns API response after posting items to the backend.
+ */
+export const postUploadedItems = async (uploadStatuses: UploadStatus[]): Promise<void> => {
+    // Filter for successful uploads
+    const successfullyUploadedItems = uploadStatuses.filter(status => status.status === 'success').map(status => status.uploaded_file);
+
+    if (successfullyUploadedItems.length > 0) {
+        const response: FullApiResponse<unknown> = await apiRequest('file/', {
+            method: 'POST',
+            data: successfullyUploadedItems
+        });
+
+        console.log('response', response);
+
+        if (response.status != 201) {
+            throw new Error(response.data.message);
+        }
+
+        console.log('Successfully posted items to the file table:');
+    }
 };

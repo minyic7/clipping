@@ -32,7 +32,6 @@ const TopTabNavigation: React.FC = () => {
         { type: 'image', src: 'https://via.placeholder.com/1000x600', width: 1000, height: 600, title: '7', description: 'A large image with 1000x600 dimensions' },
         { type: 'video', src: 'https://samplelib.com/lib/preview/mp4/sample-5s.mp4', width: 640, height: 360, title: '8', description: 'A wide video sample' },
         { type: 'image', src: 'https://via.placeholder.com/500x500', width: 500, height: 500, title: '9', description: 'A square image with 500x500 dimensions' },
-        { type: 'image', src: 'https://via.placeholder.com/300x900', width: 300, height: 900, title: '10', description: 'A very tall image with 300x900 dimensions' },
     ]);
 
     const observer = useRef<IntersectionObserver | null>(null);

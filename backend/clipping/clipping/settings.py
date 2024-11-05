@@ -12,6 +12,27 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+from decouple import config
+
+
+
+# Retrieve environment variables
+TOKEN_VALUE = config('TOKEN_VALUE')
+ACCESS_KEY_ID = config('ACCESS_KEY_ID')
+SECRET_ACCESS_KEY = config('SECRET_ACCESS_KEY')
+
+# Ensure that variables are available
+if not TOKEN_VALUE or not ACCESS_KEY_ID or not SECRET_ACCESS_KEY:
+    raise ValueError(
+        "One or more environment variables are missing. Please set TOKEN_VALUE, ACCESS_KEY_ID, and SECRET_ACCESS_KEY.")
+
+
+# R2 Setting
+ACCOUNT_ID = 'f56837f054997f21174c350c33df8c1a'
+ENDPOINT_URL = f'https://{ACCOUNT_ID}.r2.cloudflarestorage.com'
+BUCKET_NAME = 'clipping'
+
+
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -41,12 +62,14 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework', # djangorestframe work api testing app
     'ums', # user management system
-    'file'
+    'file',
+    'corsheaders'
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -148,6 +171,16 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': False,
 }
+
+# CORS
+CORS_ALLOW_CREDENTIALS = True
+CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ALLOWED_ORIGINS = [
+#     "https://example.com",
+#     "https://sub.example.com",
+#     "http://localhost:8000",
+#     "http://127.0.0.1:8000"
+# ]
 
 # add logger for testing
 LOGGING = {

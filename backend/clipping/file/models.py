@@ -1,12 +1,12 @@
 from django.db import models
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
 
 
-# Create your models here.
 class File(models.Model):
     class Meta:
-        db_table = 'file'  # custom table name if wanted, otherwise remove this line
+        db_table = 'file'  # Custom table name if wanted, otherwise remove this line
 
     class FileType(models.IntegerChoices):
         IMAGE = 1, 'Image'
@@ -14,7 +14,7 @@ class File(models.Model):
         OTHER = 3, 'Others'
 
     file_id = models.AutoField(primary_key=True)
-    bucket_name = models.CharField(max_length=100, null=False)
+    bucket_name = models.CharField(max_length=100, null=False, default=settings.BUCKET_NAME)
     object_key = models.CharField(max_length=255, null=False)
     file_type = models.SmallIntegerField(choices=FileType.choices, default=FileType.OTHER)
     width = models.IntegerField(null=True)
@@ -22,8 +22,13 @@ class File(models.Model):
     tag = models.CharField(max_length=50, null=True)
     created_datetime = models.DateTimeField(default=timezone.now)
     last_updated_datetime = models.DateTimeField(default=timezone.now)
-    description = models.TextField(null=True)
+    description = models.TextField(null=True, blank=True)
     user_id = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, db_column='user_id')
+
+    def get_url(self):
+        # Construct the URL for accessing the file
+        base_url = 'https://your-cloudflare-r2-bucket-url'
+        return f'{base_url}/{self.object_key}'
 
     # To update the 'last_updated_datetime' on model save
     def save(self, *args, **kwargs):
