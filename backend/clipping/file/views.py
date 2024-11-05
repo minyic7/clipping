@@ -29,13 +29,13 @@ class FileViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def perform_create(self, serializer):
-        serializer.save()
+        user = self.request.user
+        serializer.save(user_id=user)
 
 
 # Standalone view to get pre-signed URLs
 @api_view(['POST'])
-# @authentication_classes([TokenAuthentication])
-# @permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated])
 def get_pre_signed_urls(request):
     # Extract the list of object keys from the POST request
     objects = request.data
