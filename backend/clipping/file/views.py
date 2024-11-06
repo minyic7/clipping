@@ -16,6 +16,8 @@ class FileViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
+        print(request.data, '-+++++++++++++++++++++++s')
+
         if isinstance(request.data, list):
             # Handle bulk creation
             serializer = self.get_serializer(data=request.data, many=True)
@@ -55,11 +57,8 @@ def get_pre_signed_urls(request):
         # Extract the actual keys from dictionaries
         print(type(objects[0]), objects, '--------------')
 
-        # Instantiate the R2Service
-        r2_service = R2Service()
-
         # Get pre-signed URLs for the object keys
-        pre_signed_urls = r2_service.get_pre_signed_urls(objects)
+        pre_signed_urls = R2Service.get_pre_signed_urls(objects)
         if pre_signed_urls is None:
             raise ValueError("Failed to generate pre-signed URLs due to a service error.")
 

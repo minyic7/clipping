@@ -2,6 +2,8 @@ from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
+from .services.r2_service import R2Service
+
 
 
 class File(models.Model):
@@ -27,8 +29,8 @@ class File(models.Model):
 
     def get_url(self):
         # Construct the URL for accessing the file
-        base_url = 'https://your-cloudflare-r2-bucket-url'
-        return f'{base_url}/{self.object_key}'
+        url = R2Service.generate_public_url(self.object_key)
+        return url
 
     # To update the 'last_updated_datetime' on model save
     def save(self, *args, **kwargs):

@@ -10,7 +10,7 @@ import axios from 'axios';
  */
 export const getPreSignedUrls = async (items: Item[]): Promise<PresignedUrlResponse[]> => {
     // Map the MediaItems to PostObjects using the title as the id
-    const postObjects: PostObject[] = items.map(item => ({ object_key: item.title, file_type: item.type }));
+    const postObjects: PostObject[] = items.map(item => ({ object_key: item.title, file_type: item.file_type }));
 
     // Send the request to the backend
     const response: FullApiResponse<PresignedUrlResponse[]> = await apiRequest<PresignedUrlResponse[]>('get-pre-signed-urls/', {
