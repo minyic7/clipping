@@ -79,7 +79,7 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
             }
 
             const item: MediaItem = {
-                type: file.type.startsWith("image/") ? "image" : "video",
+                file_type: file.type.startsWith("image/") ? "image" : "video",
                 height: dimensions.height,
                 width: dimensions.width,
                 src: URL.createObjectURL(file),

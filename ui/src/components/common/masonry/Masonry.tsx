@@ -87,12 +87,12 @@ const Masonry: React.FC<MasonryProps> = ({ maxCols, minCols, maxColWidth, minCol
                     {column.map(itemIndex => {
                         const item = items[itemIndex];
                         const scaledHeight = colWidth / item.width * item.height;
-                        if (item.type === 'image' || item.type === 'video') {
+                        if (item.file_type === 'image' || item.file_type === 'video') {
                             const mediaItem = item as MediaItem; // Type assertion to MediaItem
                             return (
                                 <div key={itemIndex}>
                                     <MediaCard
-                                        type={mediaItem.type}
+                                        type={mediaItem.file_type}
                                         src={mediaItem.src}
                                         title={mediaItem.title}
                                         description={mediaItem.description}
@@ -111,7 +111,7 @@ const Masonry: React.FC<MasonryProps> = ({ maxCols, minCols, maxColWidth, minCol
                                     }}
                                 >
                                     {/* Customize the content of the div if needed */}
-                                    <p>{item.type}</p>
+                                    <p>{item.file_type}</p>
                                 </div>
                             );
                         }

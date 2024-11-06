@@ -1,6 +1,6 @@
 export interface Item {
     object_key?: string | null;
-    type: string;
+    file_type: string;
     height: number;
     width: number;
     title: string;
@@ -9,7 +9,7 @@ export interface Item {
 }
 
 export interface MediaItem extends Item {
-    type: 'image' | 'video';
+    file_type: 'image' | 'video';
     src: string;
 }
 
