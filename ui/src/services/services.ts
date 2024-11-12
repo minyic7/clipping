@@ -29,17 +29,18 @@ export const getPreSignedUrls = async (items: Item[]): Promise<PresignedUrlRespo
  * Function to upload items to their respective pre-signed URLs with detailed status tracking.
  * @param items - List of Items to be uploaded.
  * @param preSignedUrls - List of pre-signed URL responses.
- * @returns List of upload statuses.
+ * @returns Upload result containing list of upload statuses and indexes of successfully uploaded items.
  */
 export const uploadItemsUsingPreSignedUrls = async (
     items: Item[],
     preSignedUrls: PresignedUrlResponse[]
-): Promise<UploadStatus[]> => {
+): Promise<{ uploadStatuses: UploadStatus[], uploadedItemIndexes: number[] }> => {
     const uploadStatuses: UploadStatus[] = [];
+    const uploadedItemIndexes: number[] = [];
 
     const remainingPreSignedUrls = [...preSignedUrls]; // Create a copy to mutate
 
-    for (const item of items) {
+    for (const [index, item] of items.entries()) {
         // Find the first available pre-signed URL for the current item based on the original_object_key
         const urlIndex = remainingPreSignedUrls.findIndex(
             urlResp => urlResp.original_object_key === item.title
@@ -55,7 +56,6 @@ export const uploadItemsUsingPreSignedUrls = async (
 
         try {
             // Send a PUT request to the pre-signed URL using Axios
-            console.log('item raw', item)
             const response = await axios.put(urlResponse.pre_signed_url, item.raw, {
                 headers: {
                     'Content-Type': urlResponse.content_type // Explicitly specify the Content-Type header
@@ -74,6 +74,8 @@ export const uploadItemsUsingPreSignedUrls = async (
                 httpStatusCode: response.status,
                 responseMessage: response.statusText
             });
+            // Keep track of uploaded item indexes
+            uploadedItemIndexes.push(index);
         } catch (error: unknown) {
             if (axios.isAxiosError(error)) {
                 console.log('Axios error', error);
@@ -104,7 +106,7 @@ export const uploadItemsUsingPreSignedUrls = async (
         }
     }
 
-    return uploadStatuses;
+    return { uploadStatuses, uploadedItemIndexes };
 };
 
 /**

@@ -6,10 +6,11 @@ interface MediaCardProps {
     src: string;
     title: string;
     description: string;
-    width: string | number; // Accepting width as a prop
+    width: string | number;
+    btnConfig?: Array<{ btn: React.ReactNode; callback: () => void }>; // Optional prop for buttons and callbacks
 }
 
-const MediaCard: React.FC<MediaCardProps> = ({ type, src, title, description, width }) => {
+const MediaCard: React.FC<MediaCardProps> = ({ type, src, title, description, width, btnConfig }) => {
     const [hovered, setHovered] = useState(false);
 
     return (
@@ -30,6 +31,15 @@ const MediaCard: React.FC<MediaCardProps> = ({ type, src, title, description, wi
             <div className={`media-info ${hovered ? 'hovered' : ''}`}>
                 <h3>{title}</h3>
                 <p>{description}</p>
+                {btnConfig && (
+                    <div className="buttons">
+                        {btnConfig.map(({ btn, callback }, index) => (
+                            <div key={index} onClick={callback} className="media-btn">
+                                {btn}
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

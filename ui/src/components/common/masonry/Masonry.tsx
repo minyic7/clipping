@@ -1,7 +1,6 @@
-// Add gap between MediaCards via inline styles or CSS class.
 import React, { useLayoutEffect, useState, useRef, useCallback } from 'react';
-import './Masonry.less';  // Import the LESS stylesheet
-import MediaCard from '@/components/common/card/MediaCard.tsx';  // Import MediaCard
+import './Masonry.less';
+import MediaCard from '@/components/common/card/MediaCard.tsx';
 import { Item, MediaItem } from '@/components/types/types.ts';
 import { calculateColumns, calculateColWidth, MasonryConfig } from './MasonryService.ts';
 
@@ -12,9 +11,10 @@ interface MasonryProps {
     minColWidth: number;
     gap: number;
     items: Item[];
+    btnConfig?: Array<{ btn: React.ReactNode; callback: () => void }>[]; // Updated: Array of arrays for button configs
 }
 
-const Masonry: React.FC<MasonryProps> = ({ maxCols, minCols, maxColWidth, minColWidth, gap, items }) => {
+const Masonry: React.FC<MasonryProps> = ({ maxCols, minCols, maxColWidth, minColWidth, gap, items, btnConfig }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [numCols, setNumCols] = useState<number>(minCols);
     const [colWidth, setColWidth] = useState<number>(minColWidth);
@@ -51,7 +51,7 @@ const Masonry: React.FC<MasonryProps> = ({ maxCols, minCols, maxColWidth, minCol
 
         items.forEach((item, index) => {
             // Calculate the scaled height based on the colWidth
-            const scaledHeight = colWidth / item.width * item.height + gap;
+            const scaledHeight = (colWidth / item.width) * item.height + gap;
 
             // Find the column with the least height
             const shortestColumnIndex = columnHeights.indexOf(Math.min(...columnHeights));
@@ -73,44 +73,38 @@ const Masonry: React.FC<MasonryProps> = ({ maxCols, minCols, maxColWidth, minCol
     }, [numCols, colWidth, items, gap]);
 
     return (
-        <div
-            ref={containerRef}
-            className="masonry"
-            style={{ gap: `${gap}px` }}
-        >
+        <div ref={containerRef} className="masonry" style={{ gap: `${gap}px` }}>
             {columns.map((column, colIndex) => (
-                <div
-                    key={colIndex}
-                    className="masonry-column"
-                    style={{ gap: `${gap}px` }} // Ensure gap is applied here
-                >
+                <div key={`masonry-column-${colIndex}`} className="masonry-column" style={{ gap: `${gap}px` }}>
                     {column.map(itemIndex => {
                         const item = items[itemIndex];
-                        const scaledHeight = colWidth / item.width * item.height;
+                        if (!item) return null; // handle edge case
+
+                        const scaledHeight = (colWidth / item.width) * item.height;
                         if (item.file_type === 'image' || item.file_type === 'video') {
-                            const mediaItem = item as MediaItem; // Type assertion to MediaItem
+                            const mediaItem = item as MediaItem;
                             return (
-                                <div key={itemIndex}>
+                                <div key={`masonry-item-${colIndex}-${itemIndex}`}>
                                     <MediaCard
                                         type={mediaItem.file_type}
                                         src={mediaItem.src}
                                         title={mediaItem.title}
                                         description={mediaItem.description}
                                         width={colWidth}
+                                        btnConfig={btnConfig?.[itemIndex]} // Pass btnConfig for each specific item
                                     />
                                 </div>
                             );
                         } else {
                             return (
                                 <div
-                                    key={itemIndex}
+                                    key={`masonry-item-default-${colIndex}-${itemIndex}`}
                                     style={{
                                         width: colWidth,
                                         height: scaledHeight,
-                                        backgroundColor: 'lightgrey', // Or any other styling for non-media items
+                                        backgroundColor: 'lightgrey',
                                     }}
                                 >
-                                    {/* Customize the content of the div if needed */}
                                     <p>{item.file_type}</p>
                                 </div>
                             );

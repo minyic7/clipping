@@ -1,10 +1,12 @@
 import React, { useRef, useCallback } from "react";
 import "./UploadFileTab.less"; // Import the LESS stylesheet
-import Masonry from "@/components/common/masonry/Masonry.tsx"; // Import the Masonry component
-import { Item, MediaItem } from "@/components/types/types.ts";
-import { Button } from "antd"; // Assuming you're using Ant Design. Adjust as necessary.
-import { getPreSignedUrls, postUploadedItems, uploadItemsUsingPreSignedUrls } from "@/services/services.ts";
-import { PresignedUrlResponse, UploadStatus } from "@/services/types.ts";
+import Masonry from "@/components/common/masonry/Masonry"; // Import the Masonry component
+import { Item, MediaItem } from "@/components/types/types";
+import { Button } from "antd"; // Import Ant Design components
+import { CloseCircleOutlined } from '@ant-design/icons'; // Import Close Icon
+import { getPreSignedUrls, postUploadedItems } from "@/services/services";
+import { PresignedUrlResponse, UploadStatus } from "@/services/types";
+import axios from "axios";
 
 interface UploadFileTabProps {
     items: Item[];
@@ -102,24 +104,101 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
     };
 
     const handleSubmit = async () => {
-        console.log(items, '---------')
         try {
-            // Step 1: Get Pre-Signed URLs
             const preSignedUrls: PresignedUrlResponse[] = await getPreSignedUrls(items);
             console.log('Received pre-signed URLs:', preSignedUrls);
 
-            // Step 2: Upload Items to Pre-Signed URLs
-            const uploadStatuses = await uploadItemsUsingPreSignedUrls(items, preSignedUrls);
-            setUploadStatuses(uploadStatuses); // Use the setter function to update state
-            console.log('Upload statuses:', uploadStatuses);
+            const uploadStatuses: UploadStatus[] = [];
+            const remainingItems = [...items]; // Copy of items to keep track during upload
 
-            // Step 3: Post items to the backend
+            // Processing items sequentially
+            while (remainingItems.length > 0) {
+                const item = remainingItems[0];  // Pick the first item
+                const preSignedUrl = preSignedUrls.find(url => url.original_object_key === item.title);
+
+                if (!preSignedUrl) {
+                    console.error(`Pre-signed URL for item with title ${item.title} not found.`);
+                    uploadStatuses.push({ object_key: item.title, status: 'error', errorMessage: 'Pre-signed URL not found' });
+                    remainingItems.shift(); // Remove item from the list
+                    setItems([...remainingItems]); // Update UI
+                    continue;
+                }
+
+                try {
+                    const response = await axios.put(preSignedUrl.pre_signed_url, item.raw, {
+                        headers: {
+                            'Content-Type': preSignedUrl.content_type // Explicitly specify the Content-Type header
+                        },
+                        timeout: 5000 // Add a timeout if necessary
+                    });
+
+                    // Update the item's object_key with the unique_object_key from the response
+                    const uploadedItem = { ...item, object_key: preSignedUrl.unique_object_key };
+
+                    // Mark the status as success and store the HTTP status code, response message, and item
+                    uploadStatuses.push({
+                        object_key: preSignedUrl.unique_object_key,
+                        status: 'success',
+                        uploaded_file: uploadedItem,
+                        httpStatusCode: response.status,
+                        responseMessage: response.statusText
+                    });
+
+                    console.log(`Item with title ${item.title} uploaded successfully.`);
+                } catch (error) {
+                    if (axios.isAxiosError(error)) {
+                        console.log('Axios error', error);
+                        const httpStatusCode = error.response?.status;
+                        const responseMessage = error.response?.statusText;
+                        const errorCode = error.code;
+                        const errorMessage = error.message;
+
+                        console.error(`Axios Error uploading item with key ${preSignedUrl.unique_object_key}:`, error);
+
+                        uploadStatuses.push({
+                            object_key: preSignedUrl.unique_object_key,
+                            status: 'error',
+                            httpStatusCode,
+                            responseMessage,
+                            errorCode,
+                            errorMessage
+                        });
+                    } else {
+                        console.error(`Unknown error uploading item with key ${preSignedUrl.unique_object_key}:`, error);
+
+                        uploadStatuses.push({
+                            object_key: preSignedUrl.unique_object_key,
+                            status: 'error',
+                            errorMessage: 'Unknown error occurred'
+                        });
+                    }
+                }
+
+                // Remove uploaded item from the remainingItems array
+                remainingItems.shift(); // Remove the first item
+                setItems([...remainingItems]); // Update UI incrementally
+
+                // Update upload statuses incrementally
+                setUploadStatuses([...uploadStatuses]);
+
+            }
+
+            // Post all successfully uploaded items
             await postUploadedItems(uploadStatuses);
+
         } catch (error) {
             console.error('Error during submission:', error);
         }
+        console.log(items, 'after2...')
+    };
 
-        console.log('Submit clicked!');
+    const handleRemoveItem = (index: number) => {
+        setItems(prevItems => {
+            // Safely update state and handle possible undefined values
+            const updatedItems = prevItems.filter((_, i) => i !== index);
+            console.log('Item removed!', updatedItems);
+            return updatedItems;
+        });
     };
 
     return (
@@ -142,6 +221,10 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
                     minColWidth={100}
                     gap={10}
                     items={items}
+                    btnConfig={items.map((_, index) => ([{
+                        btn: <Button icon={<CloseCircleOutlined />} />,
+                        callback: () => handleRemoveItem(index)
+                    }]))}
                 />
             </div>
 
