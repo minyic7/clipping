@@ -5,6 +5,7 @@ export interface Item {
     width: number;
     title: string;
     description: string;
+    tag?: string;
     raw?: object;  // holds the actual file raw if needed, e.g. uploading files
 }
 

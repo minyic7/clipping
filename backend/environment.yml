@@ -15,7 +15,8 @@ dependencies:
       - boto3
       - botocore
       - omegaconf
-      - mysqlclient >= 2.1.0
+#      - mysqlclient >= 2.1.0
+      - psycopg[binary]
       - django
       - djangorestframework
       - djangorestframework-simplejwt

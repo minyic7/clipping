@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
 import '@/components/common/card/MediaCard.less';
 
+interface ButtonConfig {
+    btn: React.ReactNode;
+    callback: () => void;
+}
+
 interface MediaCardProps {
     type: 'image' | 'video';
     src: string;
     title: string;
     description: string;
     width: string | number;
-    btnConfig?: Array<{ btn: React.ReactNode; callback: () => void }>; // Optional prop for buttons and callbacks
+    btnConfig?: ButtonConfig[]; // Optional prop for buttons and callbacks
 }
 
 const MediaCard: React.FC<MediaCardProps> = ({ type, src, title, description, width, btnConfig }) => {

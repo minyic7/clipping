@@ -2,8 +2,8 @@ from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.contrib.postgres.fields import ArrayField  # Import ArrayField
 from .services.r2_service import R2Service
-
 
 
 class File(models.Model):
@@ -21,7 +21,7 @@ class File(models.Model):
     file_type = models.SmallIntegerField(choices=FileType.choices, default=FileType.OTHER)
     width = models.IntegerField(null=True)
     height = models.IntegerField(null=True)
-    tag = models.CharField(max_length=50, null=True)
+    tag = ArrayField(models.CharField(max_length=50), default=list, blank=True)  # Updated field
     created_datetime = models.DateTimeField(default=timezone.now)
     last_updated_datetime = models.DateTimeField(default=timezone.now)
     description = models.TextField(null=True, blank=True)

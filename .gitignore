@@ -1,3 +1,7 @@
 # Ignore JetBrains IDE settings directory
 .idea/
 /backend/.idea/
+
+# Ignore postgre pass detail
+/backend/clipping/.pg_service.conf
+/backend/clipping/.my_pgpass

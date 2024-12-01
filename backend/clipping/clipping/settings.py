@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
+import os
 
 from pathlib import Path
 from datetime import timedelta
@@ -31,6 +32,24 @@ if not TOKEN_VALUE or not ACCESS_KEY_ID or not SECRET_ACCESS_KEY:
 ACCOUNT_ID = 'f56837f054997f21174c350c33df8c1a'
 ENDPOINT_URL = f'https://{ACCOUNT_ID}.r2.cloudflarestorage.com'
 BUCKET_NAME = 'clipping'
+
+# Define the path to your .pg_service.conf file
+PGSERVICEFILE_PATH = str(Path.home() / "AppData" / "postgresql" / ".pg_service.conf")
+
+# Set the PGSERVICEFILE environment variable
+os.environ["PGSERVICEFILE"] = PGSERVICEFILE_PATH
+
+# Optional: Print for debugging (remove this in production)
+print(f"PGSERVICEFILE is set to: {os.environ.get('PGSERVICEFILE')}")
+
+# Define the path to the .my_pgpass file
+PGPASSFILE_PATH = str(Path.home() / "AppData" / "postgresql" / ".my_pgpass")
+
+# Set the PGPASSFILE environment variable
+os.environ["PGPASSFILE"] = PGPASSFILE_PATH
+
+# Debugging: Print to verify
+print(f"PGPASSFILE is set to: {os.environ.get('PGPASSFILE')}")
 
 
 
@@ -104,9 +123,10 @@ WSGI_APPLICATION = 'clipping.wsgi.application'
 # settings.py
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.mysql",
+        "ENGINE": "django.db.backends.postgresql",
         "OPTIONS": {
-            "read_default_file": "my.cnf",
+            "service": "my_service",
+            "passfile": f"{os.environ.get('PGPASSFILE')}",
         },
     }
 }

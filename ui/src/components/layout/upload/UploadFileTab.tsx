@@ -221,10 +221,14 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
                     minColWidth={100}
                     gap={10}
                     items={items}
-                    btnConfig={items.map((_, index) => ([{
-                        btn: <Button icon={<CloseCircleOutlined />} />,
-                        callback: () => handleRemoveItem(index)
-                    }]))}
+                    btnConfig={
+                        items.map((_, index) => [
+                            {
+                                btn: <Button icon={<CloseCircleOutlined />} />,
+                                callback: () => handleRemoveItem(index)
+                            }
+                        ])
+                    }
                 />
             </div>
 
