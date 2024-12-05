@@ -1,40 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import '@/components/layout/TopTabNavigation.less';
 import GalleryTab from "@/components/layout/gallery/GalleryTab.tsx";
 import UploadFileTab from "@/components/layout/upload/UploadFileTab.tsx";
-import {Item, MediaItem} from "@/components/types/types.ts";
-import {UploadStatus} from "@/services/types.ts";
-
-// Function to fetch more media items
-const fetchMoreMediaItems = async (): Promise<MediaItem[]> => {
-    // Simulate API call with a timeout
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve([
-                { file_type: 'image', src: 'https://via.placeholder.com/600x400', width: 600, height: 400, title: '11', description: 'New image 1' },
-                { file_type: 'video', src: 'https://samplelib.com/lib/preview/mp4/sample-5s.mp4', width: 640, height: 360, title: '12', description: 'New video 1' },
-                // Add more items here
-            ]);
-        }, 1000); // Simulates network delay
-    });
-};
+import { Item, MediaItem } from "@/components/types/types.ts";
+import { UploadStatus } from "@/services/types.ts";
+import { fetchItems, fetchMoreItems } from "@/services/services.ts";
 
 const TopTabNavigation: React.FC = () => {
     const [darkMode, setDarkMode] = useState(false);
     const [activeTab, setActiveTab] = useState('1');
-    const [mediaItems, setMediaItems] = useState<MediaItem[]>([
-        { file_type: 'image', src: 'https://via.placeholder.com/600x400', width: 600, height: 400, title: '1', description: 'A regular image with 600x400 dimensions' },
-        { file_type: 'image', src: 'https://via.placeholder.com/300x500', width: 300, height: 500, title: '2', description: 'A tall image with 300x500 dimensions' },
-        { file_type: 'video', src: 'https://samplelib.com/lib/preview/mp4/sample-5s.mp4', width: 640, height: 360, title: '3', description: 'Sample video 1' },
-        { file_type: 'image', src: 'https://via.placeholder.com/400x800', width: 400, height: 800, title: '4', description: 'Another tall image with 400x800 dimensions' },
-        { file_type: 'image', src: 'https://via.placeholder.com/800x300', width: 800, height: 300, title: '5', description: 'A wide image with 800x300 dimensions' },
-        { file_type: 'image', src: 'https://via.placeholder.com/200x200', width: 200, height: 200, title: '6', description: 'A small image with 200x200 dimensions' },
-        { file_type: 'image', src: 'https://via.placeholder.com/1000x600', width: 1000, height: 600, title: '7', description: 'A large image with 1000x600 dimensions' },
-        { file_type: 'video', src: 'https://samplelib.com/lib/preview/mp4/sample-5s.mp4', width: 640, height: 360, title: '8', description: 'A wide video sample' },
-        { file_type: 'image', src: 'https://via.placeholder.com/500x500', width: 500, height: 500, title: '9', description: 'A square image with 500x500 dimensions' },
-    ]);
-
-    const observer = useRef<IntersectionObserver | null>(null);
+    const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+    const [isEndOfList, setIsEndOfList] = useState(false);
+    const [nextUrl, setNextUrl] = useState<string | null>(null);
+    const [lastFetchedUrl, setLastFetchedUrl] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     // State for UploadFileTab
     const [items, setItems] = useState<Item[]>([]);
@@ -42,13 +21,30 @@ const TopTabNavigation: React.FC = () => {
     const [uploadStatuses, setUploadStatuses] = useState<UploadStatus[]>([]);
 
     useEffect(() => {
+        const fetchInitialMediaItems = async () => {
+            setIsLoading(true);
+            try {
+                const { items, next } = await fetchItems();
+                setMediaItems(items as MediaItem[]);
+                setNextUrl(next || null);
+                setIsEndOfList(!next); // End of list if no next URL
+                setLastFetchedUrl('file/')
+            } catch (error) {
+                console.error("Error fetching media items:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchInitialMediaItems();
+    }, []);
+
+    useEffect(() => {
         const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-        // Set initial mode
         setDarkMode(darkModeMediaQuery.matches);
         document.body.classList.toggle('dark-mode', darkModeMediaQuery.matches);
 
-        // Listen for changes to the color scheme
         const handleChange = (e: MediaQueryListEvent) => {
             setDarkMode(e.matches);
             document.body.classList.toggle('dark-mode', e.matches);
@@ -56,36 +52,71 @@ const TopTabNavigation: React.FC = () => {
 
         darkModeMediaQuery.addEventListener('change', handleChange);
 
-        // Clean up the event listener
         return () => {
             darkModeMediaQuery.removeEventListener('change', handleChange);
         };
     }, []);
 
     useEffect(() => {
-        if (observer.current) {
-            observer.current.disconnect();
-        }
+        let isThrottled = false;
+        const handleScroll = async () => {
+            if (!isLoading && !isThrottled) {
+                const scrollPosition = window.innerHeight + window.scrollY;
+                const threshold = document.documentElement.scrollHeight;
 
-        observer.current = new IntersectionObserver(async (entries) => {
-            if (entries[0].isIntersecting) {
-                // Fetch more media items
-                const moreMediaItems = await fetchMoreMediaItems();
-                setMediaItems(prevItems => [...prevItems, ...moreMediaItems]);
-            }
-        });
+                console.log('scroll position:', scrollPosition/threshold);
 
-        const bottomElement = document.querySelector("#bottom-of-content");
-        if (bottomElement) {
-            observer.current.observe(bottomElement);
-        }
+                if (scrollPosition >= threshold) {
+                    setIsLoading(true);
+                    isThrottled = true;
+                    try {
+                        setLastFetchedUrl(nextUrl || lastFetchedUrl)
+                        const response = await fetchMoreItems(nextUrl || lastFetchedUrl);
 
-        return () => {
-            if (observer.current) {
-                observer.current.disconnect();
+                        setNextUrl(response.next || null); // null means end of data
+                        if (!response.next) {
+                            setIsEndOfList(true); // Mark end of list if no next URL
+                        }
+
+                        const newItems = response.items as MediaItem[];
+
+                        // Filter out duplicates
+                        const existingKeys = new Set(mediaItems.map(item => item.object_key));
+                        const uniqueNewItems = newItems.filter(item => !existingKeys.has(item.object_key));
+
+                        if (uniqueNewItems.length > 0) {
+                            setMediaItems(prevItems => [...prevItems, ...uniqueNewItems]);
+
+                        } else if (!response.next) {
+                            setIsEndOfList(true); // Also mark end if no items and no next URL
+                        }
+                    } catch (error) {
+                        console.error("Error fetching more media items:", error);
+                    } finally {
+                        setIsLoading(false);
+                        setTimeout(() => {
+                            isThrottled = false;
+                        }, 3000);
+                    }
+                }
             }
         };
-    }, []);
+
+        const debounceScroll = debounce(handleScroll, 200);
+        window.addEventListener('scroll', debounceScroll);
+
+        return () => {
+            window.removeEventListener('scroll', debounceScroll);
+        };
+    });
+
+    function debounce<T extends unknown[]>(func: (...args: T) => void, wait: number): (...args: T) => void {
+        let timeout: NodeJS.Timeout;
+        return (...args: T) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func(...args), wait);
+        };
+    }
 
     const renderTabContent = () => {
         switch (activeTab) {
@@ -121,7 +152,7 @@ const TopTabNavigation: React.FC = () => {
 
             <div className="tab-content-container">
                 {renderTabContent()}
-                <div id="bottom-of-content" style={{ height: '1px' }}></div>
+                {isEndOfList && <p>All images are displayed</p>}
             </div>
         </div>
     );

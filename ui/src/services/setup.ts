@@ -1,10 +1,4 @@
-import axios, {
-    AxiosRequestConfig,
-    AxiosInstance,
-    AxiosError,
-    InternalAxiosRequestConfig, AxiosResponse
-} from 'axios';
-import {ApiResponse, FullApiResponse} from '@/services/types.ts';
+import axios, {AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig} from 'axios';
 
 // Configurable variables
 const API_VERSION = 'v1';
@@ -127,7 +121,7 @@ apiClient.interceptors.response.use(
                 return apiClient(originalRequest);
             }
         } else if (error.response?.status === 401) {
-            // Perform clean-up or redirect to login
+            // Perform clean-up or redirect to login page
         }
 
         return Promise.reject(error);
@@ -140,11 +134,9 @@ apiClient.interceptors.response.use(
  * @param options - Request options including method, headers, body, etc.
  * @returns Full response data or error.
  */
-const apiRequest = async <T>(endpoint: string, options: AxiosRequestConfig = {}): Promise<FullApiResponse<T>> => {
+const apiRequest = async <T>(endpoint: string, options: AxiosRequestConfig = {}): Promise<AxiosResponse<T>> => {
     try {
-        const response: AxiosResponse<ApiResponse<T>> = await apiClient.request({ url: endpoint, ...options });
-        const { data, status, statusText, headers } = response;
-        return { data, status, statusText, headers };
+        return await apiClient.request({url: endpoint, ...options});
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('AXIOS ERROR:', error.response?.data);

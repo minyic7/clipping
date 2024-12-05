@@ -21,7 +21,7 @@ class File(models.Model):
     file_type = models.SmallIntegerField(choices=FileType.choices, default=FileType.OTHER)
     width = models.IntegerField(null=True)
     height = models.IntegerField(null=True)
-    tag = ArrayField(models.CharField(max_length=50), default=list, blank=True)  # Updated field
+    tags = ArrayField(models.CharField(max_length=50), default=list, blank=True)  # Updated field
     created_datetime = models.DateTimeField(default=timezone.now)
     last_updated_datetime = models.DateTimeField(default=timezone.now)
     description = models.TextField(null=True, blank=True)

@@ -1,12 +1,13 @@
-import React, { useRef, useCallback } from "react";
-import "./UploadFileTab.less"; // Import the LESS stylesheet
-import Masonry from "@/components/common/masonry/Masonry"; // Import the Masonry component
+import React, { useRef, useCallback, useState } from "react";
+import "./UploadFileTab.less";
+import Masonry from "@/components/common/masonry/Masonry";
 import { Item, MediaItem } from "@/components/types/types";
-import { Button } from "antd"; // Import Ant Design components
-import { CloseCircleOutlined } from '@ant-design/icons'; // Import Close Icon
+import { Input, Button } from "antd";
+import { CloseCircleOutlined } from '@ant-design/icons';
 import { getPreSignedUrls, postUploadedItems } from "@/services/services";
 import { PresignedUrlResponse, UploadStatus } from "@/services/types";
 import axios from "axios";
+import TagInput from "@/components/common/tag/TagInput.tsx";
 
 interface UploadFileTabProps {
     items: Item[];
@@ -26,6 +27,7 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
                                                          setUploadStatuses
                                                      }) => {
     const dropzoneRef = useRef<HTMLDivElement>(null);
+    const [bulkTag, setBulkTag] = useState<string>(''); // State to store bulk tag input
 
     const isImageOrVideo = (file: File) => {
         return file.type.startsWith("image/") || file.type.startsWith("video/");
@@ -111,31 +113,28 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
             const uploadStatuses: UploadStatus[] = [];
             const remainingItems = [...items]; // Copy of items to keep track during upload
 
-            // Processing items sequentially
             while (remainingItems.length > 0) {
-                const item = remainingItems[0];  // Pick the first item
+                const item = remainingItems[0];
                 const preSignedUrl = preSignedUrls.find(url => url.original_object_key === item.title);
 
                 if (!preSignedUrl) {
                     console.error(`Pre-signed URL for item with title ${item.title} not found.`);
                     uploadStatuses.push({ object_key: item.title, status: 'error', errorMessage: 'Pre-signed URL not found' });
-                    remainingItems.shift(); // Remove item from the list
-                    setItems([...remainingItems]); // Update UI
+                    remainingItems.shift();
+                    setItems([...remainingItems]);
                     continue;
                 }
 
                 try {
                     const response = await axios.put(preSignedUrl.pre_signed_url, item.raw, {
                         headers: {
-                            'Content-Type': preSignedUrl.content_type // Explicitly specify the Content-Type header
+                            'Content-Type': preSignedUrl.content_type
                         },
-                        timeout: 5000 // Add a timeout if necessary
+                        timeout: 360000
                     });
 
-                    // Update the item's object_key with the unique_object_key from the response
                     const uploadedItem = { ...item, object_key: preSignedUrl.unique_object_key };
 
-                    // Mark the status as success and store the HTTP status code, response message, and item
                     uploadStatuses.push({
                         object_key: preSignedUrl.unique_object_key,
                         status: 'success',
@@ -174,16 +173,11 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
                     }
                 }
 
-                // Remove uploaded item from the remainingItems array
-                remainingItems.shift(); // Remove the first item
-                setItems([...remainingItems]); // Update UI incrementally
-
-                // Update upload statuses incrementally
+                remainingItems.shift();
+                setItems([...remainingItems]);
                 setUploadStatuses([...uploadStatuses]);
-
             }
 
-            // Post all successfully uploaded items
             await postUploadedItems(uploadStatuses);
 
         } catch (error) {
@@ -194,11 +188,58 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
 
     const handleRemoveItem = (index: number) => {
         setItems(prevItems => {
-            // Safely update state and handle possible undefined values
             const updatedItems = prevItems.filter((_, i) => i !== index);
             console.log('Item removed!', updatedItems);
             return updatedItems;
         });
+    };
+
+    const handleTagAdd = (index: number, tag: string) => {
+        setItems(prevItems => {
+            const newItems = [...prevItems];
+            newItems[index] = {
+                ...newItems[index],
+                tags: [...(newItems[index].tags || []), tag],
+            };
+            return newItems;
+        });
+    };
+
+    const handleTagRemove = (index: number, tag: string) => {
+        setItems(prevItems => {
+            const newItems = [...prevItems];
+            const currentItem = newItems[index];
+
+            if (currentItem && currentItem.tags) {
+                currentItem.tags = currentItem.tags.filter(t => t !== tag);
+            }
+
+            return newItems;
+        });
+    };
+
+    const handleDescriptionChange = (index: number, description: string) => {
+        setItems((prevItems) => {
+            const newItems = [...prevItems];
+            newItems[index] = {
+                ...newItems[index],
+                description: description,
+            };
+            return newItems;
+        });
+    };
+
+    const handleBulkTag = () => {
+        if (!bulkTag) return; // Do nothing if bulkTag input is empty
+
+        setItems(prevItems => prevItems.map(item => {
+            return {
+                ...item,
+                tags: Array.isArray(item.tags) ? [...item.tags, bulkTag] : [bulkTag],
+            };
+        }));
+
+        setBulkTag(''); // Clear the bulk tag input after adding
     };
 
     return (
@@ -222,10 +263,30 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
                     gap={10}
                     items={items}
                     btnConfig={
-                        items.map((_, index) => [
+                        items.map((item, index) => [
                             {
-                                btn: <Button icon={<CloseCircleOutlined />} />,
-                                callback: () => handleRemoveItem(index)
+                                btn_key: 'removeItem',
+                                btn: <Button icon={<CloseCircleOutlined />} onClick={() => handleRemoveItem(index)} />,
+                            },
+                            {
+                                btn_key: 'tagInput',
+                                btn: (
+                                    <TagInput
+                                        tags={item.tags || []}
+                                        onTagAdd={(tag) => handleTagAdd(index, tag)}
+                                        onTagRemove={(tag) => handleTagRemove(index, tag)}
+                                    />
+                                ),
+                            },
+                            {
+                                btn_key: 'descriptionInput',
+                                btn: (
+                                    <Input.TextArea
+                                        placeholder="Description"
+                                        value={item.description}
+                                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleDescriptionChange(index, e.currentTarget.value)}
+                                    />
+                                ),
                             }
                         ])
                     }
@@ -244,7 +305,16 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
             )}
 
             <div className="submit-container">
-                <Button type="primary" onClick={handleSubmit}>
+                <Input
+                    placeholder="Enter tag for all items"
+                    value={bulkTag}
+                    onChange={e => setBulkTag(e.target.value)}
+                    style={{ width: '200px', marginRight: '10px' }}
+                />
+                <Button onClick={handleBulkTag}>
+                    Bulk Tag
+                </Button>
+                <Button type="primary" onClick={handleSubmit} style={{ marginLeft: '10px' }}>
                     Submit
                 </Button>
             </div>

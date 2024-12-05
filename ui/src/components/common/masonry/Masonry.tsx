@@ -1,9 +1,11 @@
+// Import necessary dependencies
 import React, { useLayoutEffect, useState, useRef, useCallback } from 'react';
 import './Masonry.less';
-import MediaCard from '@/components/common/card/MediaCard.tsx';
+import MediaCard, {ButtonConfig} from '@/components/common/card/MediaCard.tsx';
 import { Item, MediaItem } from '@/components/types/types.ts';
 import { calculateColumns, calculateColWidth, MasonryConfig } from './MasonryService.ts';
 
+// Define the properties of the Masonry component
 interface MasonryProps {
     maxCols: number;
     minCols: number;
@@ -11,15 +13,17 @@ interface MasonryProps {
     minColWidth: number;
     gap: number;
     items: Item[];
-    btnConfig?: Array<{ btn: React.ReactNode; callback: () => void }>[]; // Updated: Array of arrays for button configs
+    btnConfig?: Array<ButtonConfig>[]; // Updated: Array of arrays for button configs
 }
 
+// Masonry component definition
 const Masonry: React.FC<MasonryProps> = ({ maxCols, minCols, maxColWidth, minColWidth, gap, items, btnConfig }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [numCols, setNumCols] = useState<number>(minCols);
     const [colWidth, setColWidth] = useState<number>(minColWidth);
     const [columns, setColumns] = useState<number[][]>([]);
 
+    // Function to update the number of columns and column width based on the container width
     const updateColumns = useCallback(() => {
         if (containerRef.current) {
             const containerWidth = containerRef.current.offsetWidth;
@@ -31,6 +35,7 @@ const Masonry: React.FC<MasonryProps> = ({ maxCols, minCols, maxColWidth, minCol
         }
     }, [maxCols, minCols, maxColWidth, minColWidth, gap]);
 
+    // Set up event listeners for initial calculation and window resize
     useLayoutEffect(() => {
         // Initial column calculation
         updateColumns();
@@ -44,14 +49,18 @@ const Masonry: React.FC<MasonryProps> = ({ maxCols, minCols, maxColWidth, minCol
         };
     }, [updateColumns]);
 
-    // Initialize an array for column heights and an array of arrays for item indices
+    // Function to distribute items into columns based on their heights and the column configuration
     const distributeItems = (items: Item[], colWidth: number, numCols: number, gap: number) => {
         const columnHeights: number[] = Array(numCols).fill(0);
         const columns: number[][] = Array.from({ length: numCols }, () => []);
 
         items.forEach((item, index) => {
+            // Ensure item has width and height defined with fallback values
+            const itemWidth = item.width ?? 1;
+            const itemHeight = item.height ?? 1;
+
             // Calculate the scaled height based on the colWidth
-            const scaledHeight = (colWidth / item.width) * item.height + gap;
+            const scaledHeight = (colWidth / itemWidth) * itemHeight + gap;
 
             // Find the column with the least height
             const shortestColumnIndex = columnHeights.indexOf(Math.min(...columnHeights));
@@ -66,31 +75,38 @@ const Masonry: React.FC<MasonryProps> = ({ maxCols, minCols, maxColWidth, minCol
         return columns;
     };
 
+    // Distribute items whenever numCols, colWidth, or items change
     useLayoutEffect(() => {
-        // Distribute media items into columns whenever numCols, colWidth, or items change
         const distributedColumns = distributeItems(items, colWidth, numCols, gap);
         setColumns(distributedColumns);
     }, [numCols, colWidth, items, gap]);
 
+    // Render the masonry layout
     return (
         <div ref={containerRef} className="masonry" style={{ gap: `${gap}px` }}>
             {columns.map((column, colIndex) => (
                 <div key={`masonry-column-${colIndex}`} className="masonry-column" style={{ gap: `${gap}px` }}>
                     {column.map(itemIndex => {
                         const item = items[itemIndex];
-                        if (!item) return null; // handle edge case
+                        if (!item) return null; // Handle edge case
 
-                        const scaledHeight = (colWidth / item.width) * item.height;
+                        // Ensure item has width and height defined with fallback values
+                        const itemWidth = item.width ?? 1;
+                        const itemHeight = item.height ?? 1;
+                        const scaledHeight = (colWidth / itemWidth) * itemHeight;
+
+                        // Render MediaCard or default item view based on file type
                         if (item.file_type === 'image' || item.file_type === 'video') {
                             const mediaItem = item as MediaItem;
                             return (
                                 <div key={`masonry-item-${colIndex}-${itemIndex}`}>
                                     <MediaCard
-                                        type={mediaItem.file_type}
+                                        file_type={mediaItem.file_type}
                                         src={mediaItem.src}
                                         title={mediaItem.title}
                                         description={mediaItem.description}
                                         width={colWidth}
+                                        tags={mediaItem.tags}
                                         btnConfig={btnConfig?.[itemIndex]} // Pass btnConfig for each specific item
                                     />
                                 </div>
@@ -116,4 +132,5 @@ const Masonry: React.FC<MasonryProps> = ({ maxCols, minCols, maxColWidth, minCol
     );
 };
 
+// Export the Masonry component
 export default Masonry;

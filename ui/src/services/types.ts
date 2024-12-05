@@ -1,33 +1,63 @@
 // Interface for the POST object with an ID
 import {Item} from "@/components/types/types.ts";
+import {AxiosResponse} from "axios";
 
 export interface PostObject {
     object_key: string; // Object ID that will be sent to the backend
 }
 
-// General API response interface
-export interface ApiResponse<T> {
-    success: boolean;
-    message: string;
-    data: T; // The actual data being returned in the response
-}
-
 /**
  * Interface representing the full response structure.
  */
-export interface FullApiResponse<T> {
-    data: ApiResponse<T>;
-    status: number;
-    statusText: string;
-    headers: unknown;
+export interface FullApiResponse<T> extends AxiosResponse{
+    data: T;
+    success?: boolean;
+    message?: string;
 }
 
-// Interface for the pre-signed URL response
-export interface PresignedUrlResponse {
+
+// // General API response interface
+// export interface ApiResponse<T> {
+//     data: T; // The actual data being returned in the response
+// }
+
+// Updated definition of ApiResponseItem
+export interface FileApiResponseItem {
+    file_id: number;
+    bucket_name: string;
+    object_key: string;
+    file_type: number;
+    width: number;
+    height: number;
+    tags: string[];
+    created_datetime: string;
+    last_updated_datetime: string;
+    description: string;
+    user_id: number;
+    url: string;
+}
+
+// Define the structure of the API response
+export interface FileApiResponse {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: FileApiResponseItem[];
+}
+
+
+export interface PresignedUrl {
     original_object_key: string;
     unique_object_key: string;
     pre_signed_url: string;
     content_type: string;
+}
+
+// Interface for the pre-signed URL response
+export interface PresignedUrlResponse {
+    data: PresignedUrl[];
+    success: boolean;
+    message: string;
 }
 
 export interface UploadStatus {

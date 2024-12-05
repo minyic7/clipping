@@ -1,19 +1,20 @@
-import { apiRequest } from '@/services/setup.ts';
-import {FullApiResponse, PostObject, PresignedUrlResponse, UploadStatus} from '@/services/types.ts';
-import { Item } from "@/components/types/types.ts";
-import axios from 'axios';
+import {apiRequest} from '@/services/setup.ts';
+import {PostObject, PresignedUrl, PresignedUrlResponse, UploadStatus} from '@/services/types.ts';
+import {FileApiResponse, FileApiResponseItem} from "@/services/types.ts";
+import {Item} from "@/components/types/types.ts"
+import axios, {AxiosResponse} from 'axios';
 
 /**
  * Function to request pre-signed URLs for a list of media items.
  * @param items - List of Items for which to request pre-signed URLs.
  * @returns List of Pre-signed URL responses from the API.
  */
-export const getPreSignedUrls = async (items: Item[]): Promise<PresignedUrlResponse[]> => {
+export const getPreSignedUrls = async (items: Item[]): Promise<PresignedUrl[]> => {
     // Map the MediaItems to PostObjects using the title as the id
-    const postObjects: PostObject[] = items.map(item => ({ object_key: item.title, file_type: item.file_type }));
+    const postObjects: PostObject[] = items.map(item => ({object_key: item.title, file_type: item.file_type}));
 
     // Send the request to the backend
-    const response: FullApiResponse<PresignedUrlResponse[]> = await apiRequest<PresignedUrlResponse[]>('get-pre-signed-urls/', {
+    const response = await apiRequest<PresignedUrlResponse>('get-pre-signed-urls/', {
         method: 'POST',
         data: postObjects
     });
@@ -33,7 +34,7 @@ export const getPreSignedUrls = async (items: Item[]): Promise<PresignedUrlRespo
  */
 export const uploadItemsUsingPreSignedUrls = async (
     items: Item[],
-    preSignedUrls: PresignedUrlResponse[]
+    preSignedUrls: PresignedUrl[]
 ): Promise<{ uploadStatuses: UploadStatus[], uploadedItemIndexes: number[] }> => {
     const uploadStatuses: UploadStatus[] = [];
     const uploadedItemIndexes: number[] = [];
@@ -48,7 +49,7 @@ export const uploadItemsUsingPreSignedUrls = async (
 
         if (urlIndex === -1) {
             console.error(`Pre-signed URL for item with title ${item.title} not found.`);
-            uploadStatuses.push({ object_key: item.title, status: 'error', errorMessage: 'Pre-signed URL not found' });
+            uploadStatuses.push({object_key: item.title, status: 'error', errorMessage: 'Pre-signed URL not found'});
             continue;
         }
 
@@ -60,7 +61,7 @@ export const uploadItemsUsingPreSignedUrls = async (
                 headers: {
                     'Content-Type': urlResponse.content_type // Explicitly specify the Content-Type header
                 },
-                timeout: 5000 // Add a timeout if necessary
+                timeout: 360000 // Add a timeout if necessary, unit ms
             });
 
             // Update the item's object_key with the unique_object_key from the response
@@ -106,7 +107,7 @@ export const uploadItemsUsingPreSignedUrls = async (
         }
     }
 
-    return { uploadStatuses, uploadedItemIndexes };
+    return {uploadStatuses, uploadedItemIndexes};
 };
 
 /**
@@ -118,18 +119,107 @@ export const postUploadedItems = async (uploadStatuses: UploadStatus[]): Promise
     // Filter for successful uploads
     const successfullyUploadedItems = uploadStatuses.filter(status => status.status === 'success').map(status => status.uploaded_file);
 
+    console.log('successfullyUploadedItems', successfullyUploadedItems);
+
     if (successfullyUploadedItems.length > 0) {
-        const response: FullApiResponse<unknown> = await apiRequest('file/', {
+        const response: AxiosResponse<FileApiResponse> = await apiRequest('file/', {
             method: 'POST',
             data: successfullyUploadedItems
         });
 
-        console.log('response', response);
-
         if (response.status != 201) {
-            throw new Error(response.data.message);
+            throw new Error("Failed to update item in database.");
         }
 
-        console.log('Successfully posted items to the file table:');
+        console.log('Successfully posted items to the file table: ', response.data);
     }
+};
+
+/**
+ * Function to fetch file items using GET method.
+ * @returns Array of file items as a list of Item objects.
+ */
+export const fetchItems = async (): Promise<{ items: Item[], next: string | null }> => {
+    try {
+        // Make a GET request to the 'file/' endpoint
+        const response = await apiRequest<FileApiResponse>('file/', {
+            method: 'GET',
+        });
+
+        // Extract items from the results field
+        const items: Item[] = response.data.results.map((item: FileApiResponseItem) => ({
+            object_key: item.object_key,
+            file_type: mapFileType(item.file_type),
+            height: item.height,
+            width: item.width,
+            title: removeEndingSuffix(item.object_key), // Using object_key as title if it fits your design
+            description: item.description,
+            tags: item.tags,
+            src: item.url, // Assign 'url' to 'src'
+        }));
+
+        return {items, next: response.data.next};
+    } catch (error) {
+        console.error('Error fetching media items:', error);
+        throw error;
+    }
+};
+
+export const fetchMoreItems = async (nextUrl: string | null): Promise<{ items: Item[], next: string | null }> => {
+    console.log('nextUrl', nextUrl);
+    if (!nextUrl) {
+        console.log("All items have been loaded.");
+        return {items: [], next: null};
+    }
+
+    try {
+        const response = await apiRequest<FileApiResponse>(nextUrl, {
+            method: 'GET',
+        });
+
+        const items: Item[] = response.data.results.map((item: FileApiResponseItem) => ({
+            object_key: item.object_key,
+            file_type: mapFileType(item.file_type),
+            height: item.height,
+            width: item.width,
+            title: removeEndingSuffix(item.object_key),
+            description: item.description,
+            tags: item.tags,
+            src: item.url,
+        }));
+
+        return {items, next: response.data.next};
+    } catch (error) {
+        console.error('Error fetching more items:', error);
+        throw error;
+    }
+};
+
+/**
+ * Helper function to map numeric file_type to string representation.
+ * @param fileType - Numeric file_type from the backend.
+ * @returns Corresponding string representation.
+ */
+const mapFileType = (fileType: number): 'image' | 'video' | 'other' => {
+    switch (fileType) {
+        case 1:
+            return 'image';
+        case 2:
+            return 'video';
+        case 3:
+            return 'other';
+        default:
+            return 'other';
+    }
+};
+
+
+/**
+ * Helper function to remove the ending timestamp or suffix from an object key.
+ * @param objectKey - The original object key potentially with a timestamp or other suffix.
+ * @returns The modified object key without the ending timestamp or suffix.
+ */
+const removeEndingSuffix = (objectKey: string): string => {
+    // Match and remove any ending sequence starting with an underscore followed by a mix of numbers/letters before the extension
+    return objectKey.replace(/(_[^_]+)(\.\w+)$/, '$2');
 };

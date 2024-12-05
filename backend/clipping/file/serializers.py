@@ -11,7 +11,7 @@ class FileSerializer(serializers.ModelSerializer):
         model = File
         fields = [
             'file_id', 'bucket_name', 'object_key', 'file_type',
-            'width', 'height', 'tag', 'created_datetime',
+            'width', 'height', 'tags', 'created_datetime',
             'last_updated_datetime', 'description', 'user_id', 'url'
         ]
         read_only_fields = ['file_id', 'created_datetime', 'last_updated_datetime', 'user_id']
@@ -48,7 +48,7 @@ class FileSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         # Allow updating of specific fields and auto-update last_updated_datetime
-        instance.tag = validated_data.get('tag', instance.tag)
+        instance.tags = validated_data.get('tags', instance.tags)
         instance.description = validated_data.get('description', instance.description)
         instance.user_id = validated_data.get('user_id', instance.user_id)
         instance.last_updated_datetime = timezone.now()
