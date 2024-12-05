@@ -1,12 +1,13 @@
 import axios, {AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig} from 'axios';
 
 // Configurable variables
-const API_VERSION = 'v1';
-const BASE_URL = `http://127.0.0.1:8000/api/${API_VERSION}/`;
+// Use VITE_API_BASE_URL if defined, otherwise fall back to /api/
+const BASE_URL = '/api/';
 
 // Hardcoded credentials (for development purposes)
 const HARDCODED_CREDENTIALS = {
     username: 'minyic',
+
     password: '1041420051Yi@'
 };
 
@@ -35,6 +36,7 @@ const setTokens = (accessToken: string, refreshToken: string): void => {
 const getInitialTokens = async (): Promise<void> => {
     console.log('Fetching initial token');
     try {
+        console.log('Baseurl: ', BASE_URL);
         const response = await axios.post(`${BASE_URL}token/`, HARDCODED_CREDENTIALS);
 
         const { access, refresh } = response.data;
@@ -136,7 +138,10 @@ apiClient.interceptors.response.use(
  */
 const apiRequest = async <T>(endpoint: string, options: AxiosRequestConfig = {}): Promise<AxiosResponse<T>> => {
     try {
-        return await apiClient.request({url: endpoint, ...options});
+        // Process the endpoint to remove everything before 'api/v[version_no]/'
+        const processedEndpoint = endpoint.replace(/.*?(api\/v[0-9]*\/)/, '');
+
+        return await apiClient.request({url: processedEndpoint, ...options});
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('AXIOS ERROR:', error.response?.data);

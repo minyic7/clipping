@@ -5,7 +5,7 @@ import { Item, MediaItem } from "@/components/types/types";
 import { Input, Button } from "antd";
 import { CloseCircleOutlined } from '@ant-design/icons';
 import { getPreSignedUrls, postUploadedItems } from "@/services/services";
-import { PresignedUrlResponse, UploadStatus } from "@/services/types";
+import {PresignedUrl, UploadStatus} from "@/services/types";
 import axios from "axios";
 import TagInput from "@/components/common/tag/TagInput.tsx";
 
@@ -107,7 +107,7 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
 
     const handleSubmit = async () => {
         try {
-            const preSignedUrls: PresignedUrlResponse[] = await getPreSignedUrls(items);
+            const preSignedUrls: PresignedUrl[] = await getPreSignedUrls(items);
             console.log('Received pre-signed URLs:', preSignedUrls);
 
             const uploadStatuses: UploadStatus[] = [];

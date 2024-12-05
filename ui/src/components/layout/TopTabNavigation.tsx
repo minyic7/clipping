@@ -21,19 +21,22 @@ const TopTabNavigation: React.FC = () => {
     const [uploadStatuses, setUploadStatuses] = useState<UploadStatus[]>([]);
 
     useEffect(() => {
-        const fetchInitialMediaItems = async () => {
+        const fetchInitialMediaItems = () => {
             setIsLoading(true);
-            try {
-                const { items, next } = await fetchItems();
-                setMediaItems(items as MediaItem[]);
-                setNextUrl(next || null);
-                setIsEndOfList(!next); // End of list if no next URL
-                setLastFetchedUrl('file/')
-            } catch (error) {
-                console.error("Error fetching media items:", error);
-            } finally {
-                setIsLoading(false);
-            }
+
+            fetchItems()
+                .then(({ items, next }) => {
+                    setMediaItems(items as MediaItem[]);
+                    setNextUrl(next || null);
+                    setIsEndOfList(!next); // End of list if no next URL
+                    setLastFetchedUrl('file/');
+                })
+                .catch(error => {
+                    console.error("Error fetching media items:", error);
+                })
+                .finally(() => {
+                    setIsLoading(false);
+                });
         };
 
         fetchInitialMediaItems();

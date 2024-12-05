@@ -197,12 +197,11 @@ SIMPLE_JWT = {
 # CORS
 CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_ALLOW_ALL = True
+ALLOWED_HOSTS = ['*']  # TODO: purchase a domain name, and only allow that domain from accessing the backend for security consideration
 # CORS_ALLOWED_ORIGINS = [
-#     "https://example.com",
-#     "https://sub.example.com",
-#     "http://localhost:8000",
-#     "http://127.0.0.1:8000"
+#     "http://101.181.135.253:7777"
 # ]
+
 
 # add logger for testing
 LOGGING = {
