@@ -2,42 +2,84 @@
 
 This guide outlines the steps to set up and run the Clipping UI in a production environment using Docker and Cloudflare Tunnel.
 
-## UI Setup
+## UI Setup - Production Environment
 
-### Production Environment
+### Prerequisites
+- Registered domain `clipping.world` with Cloudflare.
+- Cloudflare Tunnel credentials (`cert.pem` and `<tunnel-id>.json`).
+- Docker installed.
 
-Follow these steps to build and deploy the UI:
+### File Structure
+```
+.
+├── .cloudflared/
+│   ├── cert.pem                # Cloudflare certificate
+│   ├── <tunnel-id>.json        # Tunnel credentials file
+│   ├── config.yml              # define ingress rule
+├── dist/                       # Built Vite project files
+├── nginx.conf                  # NGINX configuration
+├── setup-cloudflared.sh        # Setup script
+├── Dockerfile
+```
 
-1. **Install Dependencies & Build the UI**
-    - Run the following commands to install npm packages and build the UI:
-      ```bash
-      npm install
-      npm run build
-      ```
+### (Important) Prepare credentials
+1. First made a folder named .cloudflared to place you credentials and move it to the same level and Dockerfile
+2. Generate cert.pem with cmd: `cloudflared tunnel login`
+3. Create a Tunnel and Generate <tunnel-id>.json: `cloudflared tunnel create <tunnel-name>`
 
-2. **Build Docker Image**
-    - Use the command below to build the Docker image:
-      ```bash
-      docker build -t clipping-prod .
-      ```
+### Cloudflare DNS
+Add these DNS records in Cloudflare:
 
-3. **Run the Docker Container**
-    - Run the Docker container and map it to a port:
-      ```bash
-      docker run -d -p 7777:80 --name clipping-prod-container clipping-prod
-      ```
-    - This maps the container's port 80 to port 7777 on the host machine.
+- **CNAME** for root domain:
+  Name: @ Type: CNAME Target: <tunnel-id>.cfargotunnel.com Proxy Status: Proxied
 
-4. **Check Logs for Cloudflare Tunnel URL**
-    - Retrieve the Cloudflare Tunnel URL to access the website:
-      ```bash
-      docker logs <container_name_or_id>
-      ```
-    - Note: Replace `<container_name_or_id>` with the actual container name or ID.
+- **CNAME** for `www` subdomain:
+  Name: www Type: CNAME Target: <tunnel-id>.cfargotunnel.com Proxy Status: Proxied
 
-5. **Access the Production Website**
-    - Use the URL provided in the Docker logs to access the production website.
+### Configuring `config.yml`
+Create and place `config.yml` in `.cloudflared/`:
+```yaml
+tunnel: <tunnel-id>
+credentials-file: /root/.cloudflared/<tunnel-id>.json
 
----
+ingress:
+- hostname: clipping.world
+  service: http://localhost:80
+- hostname: www.clipping.world
+  service: http://localhost:80
+- service: http_status:404
+```
+### Docker Commands
+Build the Docker image:
+```bash
+docker build -t clipping-world .
+```
 
-By following these steps, you can efficiently deploy the Clipping UI and access it via the Cloudflare Tunnel. Ensure that Docker and npm are installed on your system before proceeding with the setup.
+Run the container:
+```bash
+docker run -d -p 8080:80 --name clipping-world-container clipping-world
+```
+
+Ensure auto-restart:
+```bash
+docker update --restart unless-stopped clipping-world-container
+```
+### Verifications
+Check if the tunnel is running:
+```bash
+cloudflared tunnel list
+```
+
+Test website availability:
+```bash
+curl -I https://clipping.world
+```
+Test website availability (for powershell):
+```bash
+Invoke-WebRequest -Uri https://clipping.world -Method Head
+```
+
+### Notes
+Keep cert.pem and <tunnel-id>.json secure.
+For 24/7 availability, keep the PC or server hosting the tunnel running. 
+Or consider move the project to a cloud service

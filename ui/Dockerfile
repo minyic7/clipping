@@ -13,8 +13,20 @@ COPY dist/ /usr/share/nginx/html/
 # Configure NGINX for a single-page application (SPA)
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
+# Set up environment variables for Cloudflare
+ENV CLOUDFLARED_TUNNEL_NAME="clipping-ui" \
+    CLOUDFLARED_CREDENTIALS_DIR="/root/.cloudflared" \
+    CLOUDFLARED_DOMAIN="clipping.world"
+
+# Copy required cloudflared credential and setup script into the container
+COPY .cloudflared/ /root/.cloudflared/
+COPY setup-cloudflared.sh /usr/local/bin/setup-cloudflared.sh
+
+# Make the setup script executable
+RUN chmod +x /usr/local/bin/setup-cloudflared.sh
+
 # Expose port 80
 EXPOSE 80
 
-# Start NGINX and Cloudflare Tunnel using the shell script
-CMD ["/bin/sh", "-c", "nginx -g 'daemon off;' & cloudflared tunnel --url http://localhost:80"]
+# Start NGINX and Cloudflare Tunnel
+CMD ["/bin/sh", "-c", "/usr/local/bin/setup-cloudflared.sh && nginx -g 'daemon off;' & cloudflared tunnel run $CLOUDFLARED_TUNNEL_NAME"]
