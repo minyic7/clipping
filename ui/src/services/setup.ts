@@ -149,7 +149,6 @@ const isAccessTokenValid = async (accessToken: string): Promise<boolean> => {
 apiClient.interceptors.request.use(
     async (config: InternalAxiosRequestConfig) => {
         let accessToken = getAccessToken();
-        console.log('accessToken', accessToken);
 
         if (!accessToken) {
             await ensureAccessToken();

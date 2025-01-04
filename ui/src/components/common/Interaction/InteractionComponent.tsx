@@ -13,19 +13,22 @@ const LikesSection: React.FC<{
     totalLikes: number;
     userLiked: boolean;
     onToggleLike: () => Promise<void>;
-}> = ({ totalLikes, userLiked, onToggleLike }) => (
-    <Space>
-        <Button
-            className="like-btn"
-            shape="circle"
-            icon={userLiked ? <HeartFilled style={{ color: "red" }} /> : <HeartOutlined />}
-            onClick={onToggleLike}
-        />
-        <Text className="likes-count">
-            {totalLikes} {totalLikes === 1 ? "Like" : "Likes"}
-        </Text>
-    </Space>
-);
+}> = ({ totalLikes, userLiked, onToggleLike }) => {
+
+    return (
+        <Space>
+            <Button
+                className="like-btn"
+                shape="circle"
+                icon={userLiked ? <HeartFilled style={{ color: "red" }} /> : <HeartOutlined />}
+                onClick={onToggleLike}
+            />
+            <Text className="likes-count">
+                {totalLikes} {totalLikes === 1 ? "Like" : "Likes"}
+            </Text>
+        </Space>
+    );
+};
 
 const CommentsSection: React.FC<{
     comments: FileComment[];

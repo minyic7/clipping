@@ -25,7 +25,6 @@ const MediaCard: React.FC<MediaCardProps> = ({
     const [hovered, setHovered] = useState(false);
     const [isModalVisible, setIsModalVisible] = useState(false);
 
-    console.log('status not idle', status, title);
 
     const handleOpenModal = (e: React.MouseEvent) => {
         e.stopPropagation(); // Prevent opening a new modal if closing
