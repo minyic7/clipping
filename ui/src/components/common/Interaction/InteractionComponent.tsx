@@ -27,19 +27,28 @@ const LikesSection: React.FC<{
     </Space>
 );
 
-// Comments Component
 const CommentsSection: React.FC<{
     comments: FileComment[];
     newComment: string;
     onCommentChange: (value: string) => void;
     onSubmitComment: (e: React.FormEvent) => Promise<void>;
-}> = ({ comments, newComment, onCommentChange, onSubmitComment }) => (
+    onDeleteComment: (interactionID: number) => Promise<void>;
+}> = ({ comments, newComment, onCommentChange, onSubmitComment, onDeleteComment }) => (
     <div className="comments-section">
         {/* Comments List */}
         <div className="comments-list">
             {comments.length > 0 ? (
                 comments.map((comment) => (
                     <div className="comment-item" key={comment.interaction_id}>
+                        {/* Delete button at the top-right */}
+                        <Button
+                            type="text"
+                            danger
+                            className="delete-comment-btn"
+                            onClick={() => onDeleteComment(comment.interaction_id)}
+                        >
+                            Delete
+                        </Button>
                         <div className="comment-username">{comment.username}</div>
                         <div className="comment-description">{comment.comment}</div>
                         <div className="comment-time">
@@ -153,6 +162,29 @@ const InteractionComponent: React.FC<{ file: Item }> = ({ file }) => {
         }
     };
 
+    const handleDeleteComment = async (interactionID: number) => {
+        try {
+            // Optimistic UI: Remove the comment immediately
+            setComments((prev) => prev.filter((comment) => comment.interaction_id !== interactionID));
+
+            // Perform the deletion via API
+            await deleteInteraction(file.file_id, interactionID, "comment");
+
+            // Optionally fetch the latest comments after deletion
+            await fetchAllInteractions();
+        } catch (error) {
+            console.error("Error deleting comment:", error);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="interaction-component">
+                <Spin size="large" className="loading-spinner" />
+            </div>
+        );
+    }
+
     if (loading) {
         return (
             <div className="interaction-component">
@@ -176,6 +208,7 @@ const InteractionComponent: React.FC<{ file: Item }> = ({ file }) => {
                 newComment={newComment}
                 onCommentChange={setNewComment}
                 onSubmitComment={handleCommentSubmit}
+                onDeleteComment={handleDeleteComment} // Pass delete handler
             />
         </div>
     );

@@ -13,6 +13,7 @@
       gap: 8px; // Reduced spacing between comments
 
       .comment-item {
+        position: relative; /* Enable positioning for the delete button */
         padding: 4px; // Removed excessive padding from comment cards
         background-color: #fff; // White background
         border: 1px solid #ddd; // Slightly darker border for subtle separation
@@ -94,5 +95,11 @@
   .like-btn {
     width: 24px; // Reduced button size further
     height: 24px;
+  }
+
+  .delete-comment-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
   }
 }

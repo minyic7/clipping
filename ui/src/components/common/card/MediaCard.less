@@ -49,11 +49,14 @@
     text-overflow: ellipsis;
   }
 
+  /* New Styles for the Description Paragraph */
   p {
-    margin: 0;
-    font-size: 14px;
-    color: #ddd;
-    white-space: normal;
+    margin: 8px 0;             /* Add spacing around the paragraph */
+    font-size: 14px;            /* Adjust font size for clarity */
+    color: #cacaca;             /* Use a softer color for the text */
+    line-height: 1.6;           /* Improve line spacing for readability */
+    text-align: center;         /* Center align text */
+    word-wrap: break-word;      /* Ensure the text wraps for long words */
   }
 
   .buttons {
@@ -91,5 +94,14 @@
 }
 
 .tags-container {
-  margin-bottom: 10px;
+  margin: 8px 0;
+}
+
+/* Styling for the modal body description */
+.ant-modal-body p {
+  font-size: 14px;
+  color: #666;                /* Softer gray for modal readability */
+  line-height: 1.6;           /* Available for consistent line spacing */
+  margin: 8px 0;        /* Add spacing between */
+  word-wrap: break-word;      /* Keep long word handling */
 }

@@ -39,17 +39,21 @@ class FileViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['delete'], permission_classes=[IsAuthenticated])
     def delete_all(self, request):
         try:
-            # Delete all files
-            count, _ = File.objects.all().delete()
+            # Count interactions before deleting files
+            interaction_count = FileInteraction.objects.count()
+
+            # Delete all files (this will also cascade delete all interactions due to on_delete=models.CASCADE)
+            file_count, _ = File.objects.all().delete()
+
             return Response({
                 'success': True,
-                'message': f'Deleted {count} file(s).'
+                'message': f"Deleted {file_count} file(s) and {interaction_count} interaction(s)."
             }, status=status.HTTP_200_OK)
         except Exception as e:
-            logging.error(f"Exception occurred while deleting all files: {e}")
+            logging.error(f"Exception occurred while deleting all files and interactions: {e}")
             return Response({
                 'success': False,
-                'message': 'An error occurred while trying to delete all files.'
+                'message': 'An error occurred while trying to delete all files and interactions.'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
