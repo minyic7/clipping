@@ -87,14 +87,31 @@
     }
   }
 
+  .ant-btn.like-btn {
+    all: unset; // Reset all inherited styles
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 50%; // Ensure the button remains circular
+    background-color: transparent;
+    transition: box-shadow 0.2s ease-in-out; // Smooth transition for hover effect
+
+    &:hover {
+      box-shadow: 0 0 6px 2px rgba(255, 0, 0, 0.4); // Red outline glow on hover
+    }
+
+    &:active {
+      box-shadow: 0 0 4px 2px rgba(255, 0, 0, 0.6); // Slightly darker red glow on click
+      transition: none; // Instant feedback when active
+    }
+  }
+
   .likes-count {
     font-size: 12px;
     color: #333;
-  }
-
-  .like-btn {
-    width: 24px; // Reduced button size further
-    height: 24px;
   }
 
   .delete-comment-btn {
@@ -103,3 +120,4 @@
     right: 5px;
   }
 }
+

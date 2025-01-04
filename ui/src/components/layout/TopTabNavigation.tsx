@@ -6,7 +6,6 @@ import { Item, MediaItem } from "@/components/types/types.ts";
 import { UploadStatus } from "@/services/types.ts";
 import { fetchItems, fetchMoreItems } from "@/services/services.ts";
 import { Spin } from 'antd';
-import InteractionComponent from "@/components/common/Interaction/InteractionComponent.tsx";
 
 const TopTabNavigation: React.FC = () => {
     // States for Dark Mode and Tab Navigation
@@ -126,7 +125,7 @@ const TopTabNavigation: React.FC = () => {
                     </div>
                 );
             case '2':
-                return <InteractionComponent file={mediaItems[1]} />;
+                return <h1>还没做，不知道做啥</h1>;
             case '3':
                 return (
                     <UploadFileTab

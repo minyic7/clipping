@@ -14,13 +14,18 @@ const LikesSection: React.FC<{
     userLiked: boolean;
     onToggleLike: () => Promise<void>;
 }> = ({ totalLikes, userLiked, onToggleLike }) => {
-
     return (
         <Space>
             <Button
                 className="like-btn"
                 shape="circle"
-                icon={userLiked ? <HeartFilled style={{ color: "red" }} /> : <HeartOutlined />}
+                icon={
+                    userLiked ? (
+                        <HeartFilled style={{ color: "red", fontSize: "16px" }} />
+                    ) : (
+                        <HeartOutlined style={{ fontSize: "16px" }} />
+                    )
+                }
                 onClick={onToggleLike}
             />
             <Text className="likes-count">
@@ -36,53 +41,59 @@ const CommentsSection: React.FC<{
     onCommentChange: (value: string) => void;
     onSubmitComment: (e: React.FormEvent) => Promise<void>;
     onDeleteComment: (interactionID: number) => Promise<void>;
-}> = ({ comments, newComment, onCommentChange, onSubmitComment, onDeleteComment }) => (
-    <div className="comments-section">
-        {/* Comments List */}
-        <div className="comments-list">
-            {comments.length > 0 ? (
-                comments.map((comment) => (
-                    <div className="comment-item" key={comment.interaction_id}>
-                        {/* Delete button at the top-right */}
-                        <Button
-                            type="text"
-                            danger
-                            className="delete-comment-btn"
-                            onClick={() => onDeleteComment(comment.interaction_id)}
-                        >
-                            Delete
-                        </Button>
-                        <div className="comment-username">{comment.username}</div>
-                        <div className="comment-description">{comment.comment}</div>
-                        <div className="comment-time">
-                            {new Date(comment.created_datetime).toLocaleString()}
-                        </div>
-                    </div>
-                ))
-            ) : (
-                <div className="no-comments">No comments yet.</div>
-            )}
-        </div>
+}> = ({ comments, newComment, onCommentChange, onSubmitComment, onDeleteComment }) => {
+    // Fetch the user ID saved in local storage using `getUserId()`
+    const loggedInUserId = parseInt(getUserID() || "-1", 10); // Convert to integer
 
-        {/* Add New Comment */}
-        <div className="add-comment-section">
-            <Input.TextArea
-                rows={3}
-                value={newComment}
-                placeholder="Add a comment..."
-                onChange={(e) => onCommentChange(e.target.value)}
-            />
-            <Button
-                type="primary"
-                onClick={onSubmitComment as React.MouseEventHandler}
-                disabled={!newComment.trim()}
-                className="submit-comment-btn"
-            >
-                Comment
-            </Button>
+    return (
+        <div className="comments-section">
+            {/* Comments List */}
+            <div className="comments-list">
+                {comments.length > 0 ? (
+                    comments.map((comment) => (
+                        <div className="comment-item" key={comment.interaction_id}>
+                            {/* Delete button at the top-right */}
+                            <Button
+                                type="text"
+                                danger
+                                className="delete-comment-btn"
+                                onClick={() => onDeleteComment(comment.interaction_id)}
+                                disabled={comment.user_id !== loggedInUserId} // Disable if not the user's comment
+                            >
+                                Delete
+                            </Button>
+                            <div className="comment-username">{comment.username}</div>
+                            <div className="comment-description">{comment.comment}</div>
+                            <div className="comment-time">
+                                {new Date(comment.created_datetime).toLocaleString()}
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div className="no-comments">No comments yet.</div>
+                )}
+            </div>
+
+            {/* Add New Comment */}
+            <div className="add-comment-section">
+                <Input.TextArea
+                    rows={3}
+                    value={newComment}
+                    placeholder="Add a comment..."
+                    onChange={(e) => onCommentChange(e.target.value)}
+                />
+                <Button
+                    type="primary"
+                    onClick={onSubmitComment as React.MouseEventHandler}
+                    disabled={!newComment.trim()}
+                    className="submit-comment-btn"
+                >
+                    Comment
+                </Button>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 // Main InteractionComponent
 const InteractionComponent: React.FC<{ file: Item }> = ({ file }) => {
