@@ -1,7 +1,13 @@
 import {apiRequest} from '@/services/setup.ts';
-import {PostObject, PresignedUrl, PresignedUrlResponse, UploadStatus} from '@/services/types.ts';
-import {FileApiResponse, FileApiResponseItem} from "@/services/types.ts";
-import {Item} from "@/components/types/types.ts"
+import {
+    FileApiResponse,
+    FileApiResponseItem,
+    PostObject,
+    PresignedUrl,
+    PresignedUrlResponse,
+    UploadStatus
+} from '@/services/types.ts';
+import {FileInteraction, FileInteractionsSummary, Item} from "@/components/types/types.ts"
 import axios, {AxiosResponse} from 'axios';
 
 /**
@@ -26,89 +32,6 @@ export const getPreSignedUrls = async (items: Item[]): Promise<PresignedUrl[]> =
     return response.data.data;
 };
 
-/**
- * Function to upload items to their respective pre-signed URLs with detailed status tracking.
- * @param items - List of Items to be uploaded.
- * @param preSignedUrls - List of pre-signed URL responses.
- * @returns Upload result containing list of upload statuses and indexes of successfully uploaded items.
- */
-export const uploadItemsUsingPreSignedUrls = async (
-    items: Item[],
-    preSignedUrls: PresignedUrl[]
-): Promise<{ uploadStatuses: UploadStatus[], uploadedItemIndexes: number[] }> => {
-    const uploadStatuses: UploadStatus[] = [];
-    const uploadedItemIndexes: number[] = [];
-
-    const remainingPreSignedUrls = [...preSignedUrls]; // Create a copy to mutate
-
-    for (const [index, item] of items.entries()) {
-        // Find the first available pre-signed URL for the current item based on the original_object_key
-        const urlIndex = remainingPreSignedUrls.findIndex(
-            urlResp => urlResp.original_object_key === item.title
-        );
-
-        if (urlIndex === -1) {
-            console.error(`Pre-signed URL for item with title ${item.title} not found.`);
-            uploadStatuses.push({object_key: item.title, status: 'error', errorMessage: 'Pre-signed URL not found'});
-            continue;
-        }
-
-        const urlResponse = remainingPreSignedUrls.splice(urlIndex, 1)[0]; // Fetch and remove the URL
-
-        try {
-            // Send a PUT request to the pre-signed URL using Axios
-            const response = await axios.put(urlResponse.pre_signed_url, item.raw, {
-                headers: {
-                    'Content-Type': urlResponse.content_type // Explicitly specify the Content-Type header
-                },
-                timeout: 360000 // Add a timeout if necessary, unit ms
-            });
-
-            // Update the item's object_key with the unique_object_key from the response
-            item.object_key = urlResponse.unique_object_key;
-
-            // Mark the status as success and store the HTTP status code, response message, and item
-            uploadStatuses.push({
-                object_key: urlResponse.unique_object_key,
-                status: 'success',
-                uploaded_file: item,
-                httpStatusCode: response.status,
-                responseMessage: response.statusText
-            });
-            // Keep track of uploaded item indexes
-            uploadedItemIndexes.push(index);
-        } catch (error: unknown) {
-            if (axios.isAxiosError(error)) {
-                console.log('Axios error', error);
-                const httpStatusCode = error.response?.status;
-                const responseMessage = error.response?.statusText;
-                const errorCode = error.code;
-                const errorMessage = error.message;
-
-                console.error(`Axios Error uploading item with key ${urlResponse.unique_object_key}:`, error);
-
-                uploadStatuses.push({
-                    object_key: urlResponse.unique_object_key,
-                    status: 'error',
-                    httpStatusCode,
-                    responseMessage,
-                    errorCode,
-                    errorMessage
-                });
-            } else {
-                console.error(`Unknown error uploading item with key ${urlResponse.unique_object_key}:`, error);
-
-                uploadStatuses.push({
-                    object_key: urlResponse.unique_object_key,
-                    status: 'error',
-                    errorMessage: 'Unknown error occurred'
-                });
-            }
-        }
-    }
-
-    return {uploadStatuses, uploadedItemIndexes};
-};
 
 /**
  * Function to post successfully uploaded items to the backend.
@@ -148,6 +71,7 @@ export const fetchItems = async (): Promise<{ items: Item[], next: string | null
 
         // Extract items from the results field
         const items: Item[] = response.data.results.map((item: FileApiResponseItem) => ({
+            file_id: item.file_id,
             object_key: item.object_key,
             file_type: mapFileType(item.file_type),
             height: item.height,
@@ -178,6 +102,7 @@ export const fetchMoreItems = async (nextUrl: string | null): Promise<{ items: I
         });
 
         const items: Item[] = response.data.results.map((item: FileApiResponseItem) => ({
+            file_id: item.file_id,
             object_key: item.object_key,
             file_type: mapFileType(item.file_type),
             height: item.height,
@@ -222,4 +147,145 @@ const mapFileType = (fileType: number): 'image' | 'video' | 'other' => {
 const removeEndingSuffix = (objectKey: string): string => {
     // Match and remove any ending sequence starting with an underscore followed by a mix of numbers/letters before the extension
     return objectKey.replace(/(_[^_]+)(\.\w+)$/, '$2');
+};
+
+
+/**
+ * Function to fetch interactions (likes, dislikes, and comments) for a specific file.
+ * @param fileId - The ID of the file for which to fetch interactions. Must be a valid number.
+ * @returns A summary of file interactions including total likes/dislikes and an array of comments.
+ */
+export const fetchInteractions = async (
+    fileId: number | undefined
+): Promise<FileInteractionsSummary> => {
+    try {
+        // Check if the fileId is undefined and promptly remind the user
+        if (fileId === undefined) {
+            console.error("File ID is undefined. Please provide a valid file ID.");
+        }
+
+        // Make a GET request to the endpoint for fetching interactions for the given file
+        const response = await apiRequest<FileInteraction[]>(`file/${fileId}/interactions/`, {
+            method: "GET",
+        });
+
+        // Extract data
+        const fileInteractions: FileInteraction[] = response.data;
+
+        // Summarize interactions into likes, dislikes, and comments
+        const total_likes = fileInteractions.filter(
+            (interaction) => interaction.interaction_type === "like"
+        ).length;
+        const likes = fileInteractions.filter(
+            (interaction) => interaction.interaction_type === "like"
+        );
+        const comments = fileInteractions.filter(
+            (interaction) => interaction.interaction_type === "comment"
+        );
+
+        // Construct the summary using the FileInteractionsSummary interface
+        return {
+            total_likes: total_likes,
+            likes: likes,
+            comments: comments,
+        };
+    } catch (error) {
+        console.error(`Error fetching interactions for file ID ${fileId}:`, error);
+        throw error;
+    }
+};
+
+
+/**
+ * Function to interact with a file (like or comment).
+ * @param fileId - The ID of the file to interact with.
+ * @param interactionType - The type of interaction (e.g., "like", "comment").
+ * @param comment - (Optional) Comment text for the interaction.
+ * @returns The created or updated interaction object, or an error message if status code is 400 and interactionType is "like".
+ */
+export const interact = async (
+    fileId: number | undefined,
+    interactionType: "like" | "comment",
+    comment?: string
+): Promise<FileInteraction | string> => {
+    // Check if the fileId is valid
+    if (!fileId) {
+        throw new Error("fileId is required and must not be undefined. Please ensure a valid file ID is provided.");
+    }
+
+    try {
+        const requestData = { interaction_type: interactionType, comment };
+
+        const response = await apiRequest<FileInteraction>(`file/${fileId}/interact/`, {
+            method: "POST",
+            data: requestData,
+        });
+
+        console.log("Interaction response:", response.data);
+        return response.data;
+    } catch (error: unknown) {
+        // Check if the error is an Axios error and matches the specific status code
+        if (
+            axios.isAxiosError(error) &&
+            error.response &&
+            error.response.status === 400 &&
+            interactionType === "like"
+        ) {
+            console.error("Bad request while liking:", error.response.data.error);
+            return error.response.data.error; // Return the error message
+        }
+
+        console.error(`Error interacting with file ID ${fileId}:`, error);
+        throw error; // Throw the error if it does not match the specific conditions
+    }
+};
+
+
+/**
+ * Function to delete a specific interaction for a given file.
+ * @param fileId - The ID of the file for which the interaction needs to be deleted.
+ * @param interactionId - The unique ID of the interaction to delete.
+ * @param interactionType - The type of the interaction to delete (e.g., "like", "comment").
+ * @returns A success message on successful deletion or throws an error otherwise.
+ */
+export const deleteInteraction = async (
+    fileId: number | undefined,
+    interactionId: number,
+    interactionType: "like" | "comment"
+): Promise<string> => {
+    // Validate required parameters
+    if (!fileId || !interactionId) {
+        throw new Error("fileId and interactionId parameters are required.");
+    }
+
+    if (interactionType !== "like" && interactionType !== "comment") {
+        throw new Error("Invalid interaction type. Must be 'like' or 'comment'.");
+    }
+
+    try {
+        // Make a DELETE request to the backend with the interaction ID and type
+        const response: AxiosResponse<{ message: string }> = await apiRequest(`file/${fileId}/delete_interaction/`, {
+            method: "DELETE",
+            data: {
+                interaction_id: interactionId,
+                interaction_type: interactionType,
+            },
+        });
+
+        // Return success message from the response
+        console.log(`Interaction (ID: ${interactionId}) deleted successfully:`, response.data.message);
+        return response.data.message;
+    } catch (error: unknown) {
+        // Handle errors gracefully
+        console.error(`Error deleting interaction (ID: ${interactionId}):`, error);
+
+        // Handle Axios error
+        if (axios.isAxiosError(error)) {
+            const errorMessage = error.response?.data?.error ?? "An unknown error occurred.";
+            throw new Error(errorMessage);
+        }
+
+        // Throw unknown error
+        throw new Error("Unexpected error occurred while deleting the interaction.");
+    }
 };

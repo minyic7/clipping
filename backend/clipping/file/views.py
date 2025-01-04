@@ -1,12 +1,14 @@
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
-from .models import File
-from .serializers import FileSerializer
+from .models import File, FileInteraction
+from .serializers import FileSerializer, FileInteractionSerializer
 from .services.r2_service import R2Service  # Ensure this is the correct import
 import logging
+from collections import Counter
 
 
 # FileViewSet remains as is
@@ -16,7 +18,6 @@ class FileViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
-        print(request.data, '-+++++++++++++++++++++++s')
 
         if isinstance(request.data, list):
             # Handle bulk creation
@@ -33,6 +34,176 @@ class FileViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         user = self.request.user
         serializer.save(user_id=user)
+
+    # Custom action for deleting all files, e.g. /api/v1/file/delete_all/, WARNING: use this method with caution
+    @action(detail=False, methods=['delete'], permission_classes=[IsAuthenticated])
+    def delete_all(self, request):
+        try:
+            # Delete all files
+            count, _ = File.objects.all().delete()
+            return Response({
+                'success': True,
+                'message': f'Deleted {count} file(s).'
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            logging.error(f"Exception occurred while deleting all files: {e}")
+            return Response({
+                'success': False,
+                'message': 'An error occurred while trying to delete all files.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def unique_tags(self, request):
+        """
+        Custom endpoint to retrieve all unique tags from File model,
+        count their occurrences, and rank them by frequency.
+        """
+        tags_counter = Counter()
+        files = self.get_queryset().values('tags')
+
+        for file in files:
+            tags_counter.update(file['tags'])  # Update counter with tags from each file
+
+        # Convert counter to a list of dictionaries sorted by count
+        sorted_tags = sorted(tags_counter.items(), key=lambda x: x[1], reverse=True)
+        ranked_tags = [{"tag": tag, "count": count} for idx, (tag, count) in enumerate(sorted_tags)]
+
+        return Response({"tags": ranked_tags}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def interact(self, request, pk=None):
+        """
+        Handle user interaction (like or comment) for a file.
+
+        - A like is exclusive: a user can like only one file at a time, unless the previous like is removed.
+        - For comments:
+            - If `interaction_id` is provided, update the comment.
+            - If `interaction_id` is not provided, create a new comment.
+        """
+        file = self.get_object()
+        user = request.user
+        interaction_type = request.data.get('interaction_type')
+        comment = request.data.get('comment', None)
+        interaction_id = request.data.get('interaction_id', None)
+
+        # Validate interaction type
+        if interaction_type not in FileInteraction.InteractionType.values:
+            return Response({"error": "Invalid interaction type."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Handle the exclusive 'like' logic
+        if interaction_type == FileInteraction.InteractionType.LIKE:
+            # Check if the user has already liked this file
+            existing_like = FileInteraction.objects.filter(
+                user=user,
+                interaction_type=FileInteraction.InteractionType.LIKE,
+                file=file
+            ).first()
+
+            if existing_like:
+                return Response({"error": "You have already liked this file."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Create a new "LIKE" interaction
+            like_interaction = FileInteraction.objects.create(
+                file=file,
+                user=user,
+                interaction_type=FileInteraction.InteractionType.LIKE
+            )
+
+            # Return the created "like" interaction
+            serializer = FileInteractionSerializer(like_interaction)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        # Handle the 'comment' logic
+        if interaction_type == FileInteraction.InteractionType.COMMENT:
+            if interaction_id:
+                # If `interaction_id` is provided, try to update the existing comment
+                try:
+                    interaction = FileInteraction.objects.get(
+                        interaction_id=interaction_id,
+                        user=user,
+                        file=file,
+                        interaction_type=FileInteraction.InteractionType.COMMENT
+                    )
+                    interaction.comment = comment
+                    interaction.save()
+                    serializer = FileInteractionSerializer(interaction)
+                    return Response(serializer.data, status=status.HTTP_200_OK)
+                except FileInteraction.DoesNotExist:
+                    return Response({"error": "Interaction not found."}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                # If `interaction_id` is not provided, create a new comment interaction
+                new_comment = FileInteraction.objects.create(
+                    file=file,
+                    user=user,
+                    interaction_type=FileInteraction.InteractionType.COMMENT,
+                    comment=comment
+                )
+                serializer = FileInteractionSerializer(new_comment)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        # If the interaction type is neither 'like' nor 'comment', return an error
+        return Response({"error": "Unsupported interaction type."}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
+    def interactions(self, request, pk=None):
+        """
+        Get all interactions for the given file (likes, comments) along with username and user_id.
+        """
+        file = self.get_object()
+        interactions = FileInteraction.objects.filter(file=file).select_related('user')
+
+        # Prepare a custom response to include username and user_id
+        interaction_list = []
+        for interaction in interactions:
+            interaction_list.append({
+                'interaction_id': interaction.interaction_id,
+                'user_id': interaction.user.id,
+                'username': interaction.user.username,
+                'interaction_type': interaction.interaction_type,
+                'comment': interaction.comment,
+                'created_datetime': interaction.created_datetime
+            })
+
+        return Response(interaction_list, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['delete'], permission_classes=[IsAuthenticated])
+    def delete_interaction(self, request, pk=None):
+        """
+        Allow a user to delete their specific interaction (like, dislike, or comment) for a file.
+
+        - Only the interaction matching `interaction_id` will be deleted.
+        - Ensure the user who created the interaction is the one deleting it.
+        """
+        file = self.get_object()
+        user = request.user
+
+        # Extract "interaction_type" and "interaction_id" from the request
+        interaction_id = request.data.get('interaction_id')
+        interaction_type = request.data.get('interaction_type')
+
+        # Check if the interaction_id is provided
+        if not interaction_id:
+            return Response({"error": "Interaction ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate interaction type
+        if interaction_type not in FileInteraction.InteractionType.values:
+            return Response({"error": "Invalid interaction type."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Find the specific interaction by ID, type, user, and file
+        try:
+            interaction = FileInteraction.objects.get(
+                interaction_id=interaction_id,  # Ensure the specific ID matches
+                file=file,
+                user=user,
+                interaction_type=interaction_type
+            )
+        except FileInteraction.DoesNotExist:
+            return Response({"error": "Interaction not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Finally, delete the interaction
+        interaction.delete()
+        return Response({"message": f"{interaction_type.capitalize()} interaction deleted successfully."},
+                        status=status.HTTP_204_NO_CONTENT)
 
 
 # Standalone view to get pre-signed URLs

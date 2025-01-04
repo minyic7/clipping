@@ -1,10 +1,10 @@
-import React, { useRef, useCallback, useState } from "react";
+import React, {useRef, useState} from "react";
 import "./UploadFileTab.less";
 import Masonry from "@/components/common/masonry/Masonry";
-import { Item, MediaItem } from "@/components/types/types";
-import { Input, Button } from "antd";
-import { CloseCircleOutlined } from '@ant-design/icons';
-import { getPreSignedUrls, postUploadedItems } from "@/services/services";
+import {Item, MediaItem} from "@/components/types/types";
+import {Input, Button} from "antd";
+import {CloseCircleOutlined} from '@ant-design/icons';
+import {getPreSignedUrls, postUploadedItems} from "@/services/services";
 import {PresignedUrl, UploadStatus} from "@/services/types";
 import axios from "axios";
 import TagInput from "@/components/common/tag/TagInput.tsx";
@@ -27,17 +27,18 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
                                                          setUploadStatuses
                                                      }) => {
     const dropzoneRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null); // Ref for the file input
     const [bulkTag, setBulkTag] = useState<string>(''); // State to store bulk tag input
 
     const isImageOrVideo = (file: File) => {
         return file.type.startsWith("image/") || file.type.startsWith("video/");
     };
 
-    const getImageDimensions = (file: File): Promise<{ width: number, height: number }> => {
+    const getImageDimensions = async (file: File): Promise<{ width: number, height: number }> => {
         return new Promise((resolve, reject) => {
             const img = new Image();
             img.onload = () => {
-                resolve({ width: img.width, height: img.height });
+                resolve({width: img.width, height: img.height});
                 if (img.src) {
                     URL.revokeObjectURL(img.src);
                 }
@@ -49,12 +50,12 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
         });
     };
 
-    const getVideoDimensions = (file: File): Promise<{ width: number, height: number }> => {
+    const getVideoDimensions = async (file: File): Promise<{ width: number, height: number }> => {
         return new Promise((resolve, reject) => {
             const video = document.createElement("video");
             video.preload = "metadata";
             video.onloadedmetadata = () => {
-                resolve({ width: video.videoWidth, height: video.videoHeight });
+                resolve({width: video.videoWidth, height: video.videoHeight});
                 URL.revokeObjectURL(video.src);
             };
             video.onerror = () => {
@@ -64,14 +65,14 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
         });
     };
 
-    const handleDrop = useCallback(async (event: React.DragEvent<HTMLDivElement>) => {
-        event.preventDefault();
-        const droppedFiles = Array.from(event.dataTransfer.files);
+    // Logic to process files (used by both drag/drop and click upload)
+    const processFiles = async (fileList: FileList) => {
+        const droppedFiles = Array.from(fileList);
         const validFiles = droppedFiles.filter(isImageOrVideo);
         const invalidFiles = droppedFiles.filter(file => !isImageOrVideo(file));
 
         const newItems: Item[] = await Promise.all(validFiles.map(async (file) => {
-            let dimensions = { width: 100, height: 100 }; // Default dimensions
+            let dimensions = {width: 100, height: 100}; // Default dimensions
             try {
                 if (file.type.startsWith("image/")) {
                     dimensions = await getImageDimensions(file);
@@ -99,91 +100,129 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
             ...prevInvalidFiles,
             ...invalidFiles.map(file => file.name)
         ]);
-    }, [setItems, setInvalidFiles]);
+    };
+
+    const handleDrop = async (event: React.DragEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        await processFiles(event.dataTransfer.files);
+    };
 
     const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
     };
 
+    const handleDropzoneClick = () => {
+        if (fileInputRef.current) {
+            fileInputRef.current.click(); // Trigger file input click
+        }
+    };
+
+    const handleFileInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files) {
+            await processFiles(event.target.files);
+        }
+    };
+
     const handleSubmit = async () => {
-        try {
-            const preSignedUrls: PresignedUrl[] = await getPreSignedUrls(items);
-            console.log('Received pre-signed URLs:', preSignedUrls);
+        const preSignedUrls: PresignedUrl[] = await getPreSignedUrls(items);
 
-            const uploadStatuses: UploadStatus[] = [];
-            const remainingItems = [...items]; // Copy of items to keep track during upload
+        // Notify for missing pre-signed URLs
+        if (!preSignedUrls || preSignedUrls.length === 0) {
+            console.error("No pre-signed URLs received. Upload cannot continue.");
+            return;
+        }
 
-            while (remainingItems.length > 0) {
-                const item = remainingItems[0];
-                const preSignedUrl = preSignedUrls.find(url => url.original_object_key === item.title);
+        // Function to handle the upload of a single item
+        const uploadItem = async (item: Item): Promise<UploadStatus> => {
+            const preSignedUrl = preSignedUrls.find(url => url.original_object_key === item.title);
 
-                if (!preSignedUrl) {
-                    console.error(`Pre-signed URL for item with title ${item.title} not found.`);
-                    uploadStatuses.push({ object_key: item.title, status: 'error', errorMessage: 'Pre-signed URL not found' });
-                    remainingItems.shift();
-                    setItems([...remainingItems]);
-                    continue;
-                }
-
-                try {
-                    const response = await axios.put(preSignedUrl.pre_signed_url, item.raw, {
-                        headers: {
-                            'Content-Type': preSignedUrl.content_type
-                        },
-                        timeout: 360000
-                    });
-
-                    const uploadedItem = { ...item, object_key: preSignedUrl.unique_object_key };
-
-                    uploadStatuses.push({
-                        object_key: preSignedUrl.unique_object_key,
-                        status: 'success',
-                        uploaded_file: uploadedItem,
-                        httpStatusCode: response.status,
-                        responseMessage: response.statusText
-                    });
-
-                    console.log(`Item with title ${item.title} uploaded successfully.`);
-                } catch (error) {
-                    if (axios.isAxiosError(error)) {
-                        console.log('Axios error', error);
-                        const httpStatusCode = error.response?.status;
-                        const responseMessage = error.response?.statusText;
-                        const errorCode = error.code;
-                        const errorMessage = error.message;
-
-                        console.error(`Axios Error uploading item with key ${preSignedUrl.unique_object_key}:`, error);
-
-                        uploadStatuses.push({
-                            object_key: preSignedUrl.unique_object_key,
-                            status: 'error',
-                            httpStatusCode,
-                            responseMessage,
-                            errorCode,
-                            errorMessage
-                        });
-                    } else {
-                        console.error(`Unknown error uploading item with key ${preSignedUrl.unique_object_key}:`, error);
-
-                        uploadStatuses.push({
-                            object_key: preSignedUrl.unique_object_key,
-                            status: 'error',
-                            errorMessage: 'Unknown error occurred'
-                        });
-                    }
-                }
-
-                remainingItems.shift();
-                setItems([...remainingItems]);
-                setUploadStatuses([...uploadStatuses]);
+            if (!preSignedUrl) {
+                console.error(`Pre-signed URL for item with title "${item.title}" not found.`);
+                return {
+                    object_key: item.title,
+                    status: 'error',
+                    errorMessage: 'Pre-signed URL not found',
+                } as UploadStatus;
             }
 
-            await postUploadedItems(uploadStatuses);
+            // Notify user that the file is being uploaded
+            setItems(prevItems => prevItems.map(i =>
+                i.title === item.title ? { ...i, status: 'uploading' } : i
+            ));
 
+            try {
+                const response = await axios.put(preSignedUrl.pre_signed_url, item.raw, {
+                    headers: {
+                        'Content-Type': preSignedUrl.content_type
+                    },
+                    timeout: 360000
+                });
+
+                console.log(`Item "${item.title}" uploaded successfully.`);
+
+                // Remove item from the list after successful upload
+                setItems(prevItems => prevItems.filter(i => i.title !== item.title));
+
+                return {
+                    object_key: preSignedUrl.unique_object_key,
+                    status: 'success',
+                    uploaded_file: { ...item, object_key: preSignedUrl.unique_object_key },
+                    httpStatusCode: response.status,
+                    responseMessage: response.statusText
+                } as UploadStatus;
+            } catch (error) {
+                if (axios.isAxiosError(error)) {
+                    console.error(`Error uploading item "${item.title}":`, error);
+
+                    return {
+                        object_key: preSignedUrl.unique_object_key,
+                        status: 'error',
+                        httpStatusCode: error.response?.status,
+                        responseMessage: error.response?.statusText,
+                        errorCode: error.code,
+                        errorMessage: error.message
+                    } as UploadStatus;
+                } else {
+                    console.error(`Unknown error uploading item "${item.title}":`, error);
+
+                    return {
+                        object_key: preSignedUrl.unique_object_key,
+                        status: 'error',
+                        errorMessage: 'Unknown error occurred'
+                    } as UploadStatus;
+                }
+            }
+        };
+
+        try {
+            // Creating a list of promises to upload files in parallel
+            const uploadPromises = items.map(item => uploadItem(item));
+
+            // Wait for all uploads to settle (resolved or rejected)
+            const uploadResults = await Promise.allSettled(uploadPromises);
+
+            const successfulUploads = uploadResults
+                .filter(result => result.status === "fulfilled" && (result as PromiseFulfilledResult<UploadStatus>).value.status === "success")
+                .map(result => (result as PromiseFulfilledResult<UploadStatus>).value);
+
+            const failedUploads = uploadResults
+                .filter(result => result.status === "fulfilled" && (result as PromiseFulfilledResult<UploadStatus>).value.status === "error")
+                .map(result => (result as PromiseFulfilledResult<UploadStatus>).value);
+
+            // Update the state to reflect the upload statuses
+            setUploadStatuses([...successfulUploads, ...failedUploads]);
+
+            // Post successful uploads to your backend server
+            if (successfulUploads.length > 0) {
+                await postUploadedItems(successfulUploads);
+            }
+
+            // Log the final statuses
+            console.log("Upload completed. Successful uploads:", successfulUploads);
+            console.log("Failed uploads:", failedUploads);
         } catch (error) {
-            console.error('Error during submission:', error);
+            console.error("Error during parallel uploads:", error);
         }
-        console.log(items, 'after2...')
     };
 
     const handleRemoveItem = (index: number) => {
@@ -247,12 +286,20 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
             <div
                 ref={dropzoneRef}
                 className="upload-file-tab"
+                onClick={handleDropzoneClick} // Set onClick to trigger file input
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
             >
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    style={{ display: "none" }} // Hidden input
+                    onChange={handleFileInputChange}
+                />
                 {items.length === 0 && (
                     <p className="reminder">
-                        Drag images or videos here to upload.
+                        Drag images or videos here to upload or click to select files.
                     </p>
                 )}
                 <Masonry

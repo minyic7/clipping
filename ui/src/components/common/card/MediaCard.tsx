@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Modal, Tag } from 'antd';
+import { Modal, Tag, Spin } from 'antd'; // Import Spin for the loader
 import '@/components/common/card/MediaCard.less';
-import {MediaItem} from "@/components/types/types.ts";
+import { MediaItem } from '@/components/types/types.ts';
 
 export interface ButtonConfig {
     btn_key: string;
@@ -20,9 +20,12 @@ const MediaCard: React.FC<MediaCardProps> = ({
                                                  width,
                                                  tags,
                                                  btnConfig,
+                                                 status = 'idle', // Default status to 'idle'
                                              }) => {
     const [hovered, setHovered] = useState(false);
     const [isModalVisible, setIsModalVisible] = useState(false);
+
+    console.log('status not idle', status, title);
 
     const handleOpenModal = (e: React.MouseEvent) => {
         e.stopPropagation(); // Prevent opening a new modal if closing
@@ -42,6 +45,15 @@ const MediaCard: React.FC<MediaCardProps> = ({
             onMouseLeave={() => setHovered(false)}
             onClick={handleOpenModal}
         >
+            {/* Add overlay with Spin for uploading items */}
+            {status === 'uploading' && (
+                <div className="media-overlay">
+                    <div className="media-spinner">
+                        <Spin size="large" />
+                    </div>
+                </div>
+            )}
+
             {file_type === 'image' ? (
                 <img src={src} alt={title} className="media" style={{ width: '100%' }} />
             ) : (
@@ -50,9 +62,10 @@ const MediaCard: React.FC<MediaCardProps> = ({
                     Your browser does not support the video tag.
                 </video>
             )}
+
             <div className={`media-info ${hovered ? 'hovered' : ''}`}>
                 <h3>{title}</h3>
-                <p style={{marginBottom:"10px"}}>{description}</p>
+                <p style={{ marginBottom: '10px' }}>{description}</p>
                 {btnConfig && (
                     <div className="top-right-buttons">
                         {btnConfig
@@ -67,7 +80,9 @@ const MediaCard: React.FC<MediaCardProps> = ({
                 {tags && (
                     <div className="tags-container">
                         {tags.map((tag, index) => (
-                            <Tag key={index} color="blue">{tag}</Tag>
+                            <Tag key={index} color="blue">
+                                {tag}
+                            </Tag>
                         ))}
                     </div>
                 )}
@@ -88,7 +103,16 @@ const MediaCard: React.FC<MediaCardProps> = ({
                         Your browser does not support the video tag.
                     </video>
                 )}
-                <p>{description}</p>
+                {description && description.trim() !== '' && <p>{description}</p>}
+                {tags && (
+                    <div className="tags-container">
+                        {tags.map((tag, index) => (
+                            <Tag key={index} color="blue">
+                                {tag}
+                            </Tag>
+                        ))}
+                    </div>
+                )}
                 {btnConfig && (
                     <div className="buttons">
                         {btnConfig

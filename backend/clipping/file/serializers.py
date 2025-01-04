@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import File
+from .models import File, FileInteraction
 from django.utils import timezone
 from django.conf import settings
 
@@ -65,3 +65,10 @@ class FileSerializer(serializers.ModelSerializer):
             # Add any other mappings as needed
         }
         return file_type_map.get(file_type.lower(), File.FileType.OTHER)
+
+
+
+class FileInteractionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FileInteraction
+        fields = ['interaction_id', 'file', 'user', 'interaction_type', 'comment', 'created_datetime']

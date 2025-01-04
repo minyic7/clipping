@@ -6,6 +6,7 @@ from django.contrib.postgres.fields import ArrayField  # Import ArrayField
 from .services.r2_service import R2Service
 
 
+
 class File(models.Model):
     class Meta:
         db_table = 'file'  # Custom table name if wanted, otherwise remove this line
@@ -41,3 +42,25 @@ class File(models.Model):
         return f'<File {self.object_key}>'
 
     __str__ = __repr__
+
+
+class FileInteraction(models.Model):
+    class Meta:
+        db_table = 'file_interaction'
+
+    class InteractionType(models.TextChoices):
+        LIKE = 'like', 'Like'
+        COMMENT = 'comment', 'Comment'
+
+    interaction_id = models.AutoField(primary_key=True)
+    file = models.ForeignKey('File', on_delete=models.CASCADE, related_name='interactions')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='file_interactions')
+    interaction_type = models.CharField(max_length=10, choices=InteractionType.choices)
+    comment = models.TextField(null=True, blank=True)  # Only used for 'comment' interaction type
+    created_datetime = models.DateTimeField(default=timezone.now)
+
+    def __repr__(self):
+        return f'<FileInteraction file={self.file_id} user={self.user_id} type={self.interaction_type}>'
+
+    def __str__(self):
+        return self.__repr__()

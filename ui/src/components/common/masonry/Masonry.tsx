@@ -108,6 +108,7 @@ const Masonry: React.FC<MasonryProps> = ({ maxCols, minCols, maxColWidth, minCol
                                         width={colWidth}
                                         tags={mediaItem.tags}
                                         btnConfig={btnConfig?.[itemIndex]} // Pass btnConfig for each specific item
+                                        status={mediaItem.status}
                                     />
                                 </div>
                             );

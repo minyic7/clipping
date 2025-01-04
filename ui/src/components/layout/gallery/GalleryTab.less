@@ -1,8 +1,168 @@
 /* GalleryTab.less */
 
+/* Main container */
 .gallery-tab {
   width: 100%;
-  //height: 100%;
   display: flex;
-  justify-content: center;
+  flex-direction: column; /* Allow space for other sections like search and tags */
+  align-items: center; /* Center content horizontally */
+  //justify-content: center; /* Center content vertically */
+  box-sizing: border-box; /* Ensure padding is included in width calculations */
+  padding: 20px; /* Add padding for spacing */
+  min-height: 100vh; /* Ensure the container takes at least the full viewport height */
+
+  /* Masonry container alignment */
+  .masonry-container {
+    width: 100%;
+    display: flex;
+    justify-content: center; /* Center Masonry horizontally */
+    align-items: center; /* Center Masonry vertically */
+    flex-wrap: wrap; /* Ensure Masonry contents wrap nicely */
+    gap: 16px; /* Add spacing between columns/items */
+
+    .masonry-item {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+  }
+}
+
+/* Comment Section Styles */
+.comment-section {
+  margin-top: 8px;
+  width: 100%; /* Ensures full container width */
+  position: relative; /* Allows the delete button to be positioned within this container */
+
+  .ant-input-textarea {
+    resize: vertical;
+  }
+}
+
+/* Button Actions */
+.button-actions {
+  display: flex; /* Keep buttons inline */
+  align-items: center; /* Vertically align buttons */
+  margin-bottom: 12px; /* Add spacing between buttons and the comment section */
+  justify-content: start; /* Align buttons to the left */
+  gap: 12px; /* Space between buttons */
+}
+
+/* Wrapper for Delete Button */
+.delete-button-container {
+  position: absolute; /* Float the delete button */
+  bottom: 0; /* Align with the bottom of the parent */
+  right: 0; /* Place it to the far-right */
+}
+
+/* Like Section */
+.like-section {
+  display: flex;
+  align-items: center; /* Vertically align the button and the label */
+  gap: 8px; /* Space between the button and the label */
+}
+
+.likes-label {
+  font-size: 14px;
+  color: #888; /* Subtle color for the like count */
+}
+
+/* Search and Popular Tags Section */
+.search-and-popular-tags {
+  max-width: 1200px; /* Adjust based on GalleryTab's max width */
+  margin: 0 auto; /* Center the section horizontally */
+  padding: 0 20px; /* Add some padding to prevent it from sticking to the edges */
+  display: flex;
+  flex-direction: column; /* Stack the search bar and popular tags vertically */
+  align-items: center; /* Center the content */
+  width: 100%; /* Ensure it takes up the available width */
+  box-sizing: border-box; /* Include padding in total width calculation */
+}
+
+.popular-tags {
+  display: flex; /* Align label and tags-container inline */
+  align-items: center; /* Vertically center the label and tags */
+  justify-content: center; /* Center the label and tags-container horizontally */
+  margin-bottom: 16px;
+  width: 100%; /* Take the full width of the parent container */
+  height: auto; /* Dynamic height based on content */
+
+  label {
+    font-weight: bold;
+    margin-right: 10px; /* Add space between label and tags-container */
+    display: inline-block;
+    flex-shrink: 0; /* Prevent the label from shrinking in the flexbox layout */
+    font-size: 16px; /* Slightly larger font size for better readability */
+    color: #333; /* Ensure good contrast */
+  }
+
+  .tags-container {
+    display: flex; /* Align tags inline */
+    flex-wrap: wrap; /* Allow tags to wrap to the next line if they overflow */
+    gap: 12px; /* Add spacing between the tags */
+    justify-content: center; /* Center tags inside the tags-container */
+    max-width: 100%; /* Ensure it doesn't exceed the parent width */
+  }
+
+  .tag-item {
+    font-size: 14px;
+    padding: 6px 16px;
+    border: 1px solid #ccc;
+    background-color: #f5f5f5; /* Light gray background for tags */
+    color: #555; /* Neutral text color */
+    border-radius: 16px; /* Pill-shaped tags */
+    cursor: pointer;
+    transition: all 0.3s ease; /* Smooth transition for hover and background changes */
+
+    &:hover {
+      background-color: #0078d4; /* Highlight color for the hover effect */
+      color: white; /* White text for better readability on hover */
+      border-color: #005bb5; /* Darker border on hover */
+    }
+
+    &.selected {
+      background-color: #0078d4; /* Same highlight color for selected tags */
+      color: white;
+      font-weight: bold; /* Bold text to differentiate selected tags */
+      border-color: #005bb5; /* Darker border for selected tags */
+      box-shadow: 0 0 8px rgba(0, 120, 212, 0.5); /* Add subtle shadow for emphasis */
+    }
+  }
+
+  .tag-clear {
+    font-size: 14px;
+    padding: 6px 12px;
+    border: 1px solid #d9534f; /* Red border for the clear button */
+    background-color: transparent;
+    color: #d9534f; /* Red text */
+    border-radius: 16px; /* Pill-shaped button for consistency */
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background-color: #d9534f; /* Red background on hover */
+      color: white; /* White text on hover */
+    }
+  }
+}
+
+/* Masonry layout styles */
+.masonry-container {
+  display: flex;
+  flex-wrap: wrap; /* Ensure items wrap to the next line if needed */
+  justify-content: center; /* Center align Masonry items */
+  gap: 16px; /* Add spacing between items */
+  margin-top: 20px; /* Add space between search/tags and Masonry */
+  width: 100%;
+}
+
+.masonry-item {
+  display: flex;
+  justify-content: center; /* Center items horizontally */
+  align-items: center; /* Center items vertically */
+  transition: transform 0.3s ease; /* Smooth animation for hover */
+
+  &:hover {
+    transform: scale(1.02); /* Slight zoom effect on hover */
+  }
 }

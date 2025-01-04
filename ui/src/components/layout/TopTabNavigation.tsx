@@ -5,128 +5,128 @@ import UploadFileTab from "@/components/layout/upload/UploadFileTab.tsx";
 import { Item, MediaItem } from "@/components/types/types.ts";
 import { UploadStatus } from "@/services/types.ts";
 import { fetchItems, fetchMoreItems } from "@/services/services.ts";
+import { Spin } from 'antd';
+import InteractionComponent from "@/components/common/Interaction/InteractionComponent.tsx";
 
 const TopTabNavigation: React.FC = () => {
+    // States for Dark Mode and Tab Navigation
     const [darkMode, setDarkMode] = useState(false);
     const [activeTab, setActiveTab] = useState('1');
-    const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-    const [isEndOfList, setIsEndOfList] = useState(false);
-    const [nextUrl, setNextUrl] = useState<string | null>(null);
-    const [lastFetchedUrl, setLastFetchedUrl] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
 
-    // State for UploadFileTab
+    // States for Gallery Tab
+    const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+    const [isEndOfList, setIsEndOfList] = useState(false); // For infinite scrolling
+    const [nextUrl, setNextUrl] = useState<string | null>(null);
+
+    // Loading States
+    const [isInitialLoading, setIsInitialLoading] = useState(false);
+    const [isFetchingMore, setIsFetchingMore] = useState(false);
+
+    // States for Upload Tab
     const [items, setItems] = useState<Item[]>([]);
     const [invalidFiles, setInvalidFiles] = useState<string[]>([]);
     const [uploadStatuses, setUploadStatuses] = useState<UploadStatus[]>([]);
 
+    // -------------------------------
+    // FETCH INITIAL GALLERY ITEMS
+    // -------------------------------
     useEffect(() => {
-        const fetchInitialMediaItems = () => {
-            setIsLoading(true);
-
-            fetchItems()
-                .then(({ items, next }) => {
-                    setMediaItems(items as MediaItem[]);
-                    setNextUrl(next || null);
-                    setIsEndOfList(!next); // End of list if no next URL
-                    setLastFetchedUrl('file/');
-                })
-                .catch(error => {
-                    console.error("Error fetching media items:", error);
-                })
-                .finally(() => {
-                    setIsLoading(false);
-                });
+        const fetchInitialMediaItems = async () => {
+            setIsInitialLoading(true);
+            try {
+                const { items, next } = await fetchItems();
+                setMediaItems(items as MediaItem[]);
+                setNextUrl(next || null);
+                setIsEndOfList(!next); // If next is null, end of the list
+            } catch (error) {
+                console.error("Error fetching media items:", error);
+            } finally {
+                setIsInitialLoading(false);
+            }
         };
 
         fetchInitialMediaItems();
     }, []);
 
+    // -------------------------------
+    // MANAGE DARK MODE
+    // -------------------------------
     useEffect(() => {
         const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-        setDarkMode(darkModeMediaQuery.matches);
-        document.body.classList.toggle('dark-mode', darkModeMediaQuery.matches);
-
-        const handleChange = (e: MediaQueryListEvent) => {
-            setDarkMode(e.matches);
-            document.body.classList.toggle('dark-mode', e.matches);
+        const updateDarkMode = (isDark: boolean) => {
+            setDarkMode(isDark);
+            document.body.classList.toggle('dark-mode', isDark);
         };
+
+        updateDarkMode(darkModeMediaQuery.matches); // Initial check
+        const handleChange = (e: MediaQueryListEvent) => updateDarkMode(e.matches);
 
         darkModeMediaQuery.addEventListener('change', handleChange);
-
-        return () => {
-            darkModeMediaQuery.removeEventListener('change', handleChange);
-        };
+        return () => darkModeMediaQuery.removeEventListener('change', handleChange);
     }, []);
 
+    // -------------------------------
+    // HANDLE INFINITE SCROLLING
+    // -------------------------------
     useEffect(() => {
-        let isThrottled = false;
         const handleScroll = async () => {
-            if (!isLoading && !isThrottled) {
-                const scrollPosition = window.innerHeight + window.scrollY;
-                const threshold = document.documentElement.scrollHeight;
+            const isBottom =
+                window.innerHeight + window.scrollY >= document.documentElement.scrollHeight;
 
-                console.log('scroll position:', scrollPosition/threshold);
+            if (!isFetchingMore && isBottom && nextUrl) {
+                setIsFetchingMore(true);
+                try {
+                    const { items: newItems, next } = await fetchMoreItems(nextUrl);
+                    const uniqueItems = newItems.filter(
+                        (item) => !mediaItems.some((existing) => existing.object_key === item.object_key)
+                    );
 
-                if (scrollPosition >= threshold) {
-                    setIsLoading(true);
-                    isThrottled = true;
-                    try {
-                        setLastFetchedUrl(nextUrl || lastFetchedUrl)
-                        const response = await fetchMoreItems(nextUrl || lastFetchedUrl);
-
-                        setNextUrl(response.next || null); // null means end of data
-                        if (!response.next) {
-                            setIsEndOfList(true); // Mark end of list if no next URL
-                        }
-
-                        const newItems = response.items as MediaItem[];
-
-                        // Filter out duplicates
-                        const existingKeys = new Set(mediaItems.map(item => item.object_key));
-                        const uniqueNewItems = newItems.filter(item => !existingKeys.has(item.object_key));
-
-                        if (uniqueNewItems.length > 0) {
-                            setMediaItems(prevItems => [...prevItems, ...uniqueNewItems]);
-
-                        } else if (!response.next) {
-                            setIsEndOfList(true); // Also mark end if no items and no next URL
-                        }
-                    } catch (error) {
-                        console.error("Error fetching more media items:", error);
-                    } finally {
-                        setIsLoading(false);
-                        setTimeout(() => {
-                            isThrottled = false;
-                        }, 3000);
-                    }
+                    setMediaItems((prev) => [...prev, ...uniqueItems] as MediaItem[]); // Append new items
+                    setNextUrl(next || null);
+                    setIsEndOfList(!next);
+                } catch (error) {
+                    console.error("Error fetching more media items:", error);
+                } finally {
+                    setIsFetchingMore(false);
                 }
             }
         };
 
-        const debounceScroll = debounce(handleScroll, 200);
-        window.addEventListener('scroll', debounceScroll);
-
-        return () => {
-            window.removeEventListener('scroll', debounceScroll);
+        const debounce = (func: () => void, delay: number) => {
+            let timeout: NodeJS.Timeout;
+            return () => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func(), delay);
+            };
         };
-    });
 
-    function debounce<T extends unknown[]>(func: (...args: T) => void, wait: number): (...args: T) => void {
-        let timeout: NodeJS.Timeout;
-        return (...args: T) => {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func(...args), wait);
-        };
-    }
+        const debouncedScroll = debounce(handleScroll, 200);
+        window.addEventListener('scroll', debouncedScroll);
+        return () => window.removeEventListener('scroll', debouncedScroll);
+    }, [isFetchingMore, nextUrl, mediaItems]);
 
+    // -------------------------------
+    // HANDLERS AND UI
+    // -------------------------------
     const renderTabContent = () => {
         switch (activeTab) {
             case '1':
-                return <GalleryTab mediaItems={mediaItems} />;
+                return (
+                    <div id="gallery-tab-content">
+                        {isInitialLoading ? (
+                            <Spin />
+                        ) : (
+                            <GalleryTab
+                                mediaItems={mediaItems}
+                                isFetchingMore={isFetchingMore}
+                                isEndOfList={isEndOfList}
+                            />
+                        )}
+                    </div>
+                );
             case '2':
-                return <div>Tools Content</div>;
+                return <InteractionComponent file={mediaItems[1]} />;
             case '3':
                 return (
                     <UploadFileTab
@@ -144,19 +144,28 @@ const TopTabNavigation: React.FC = () => {
     };
 
     return (
-        <div id="top-tab-navigation"
-             className={`top-tab-navigation ${darkMode ? 'dark-mode-tabs' : 'light-mode-tabs'}`}>
-
+        <div id="top-tab-navigation" className={darkMode ? 'dark-mode-tabs' : 'light-mode-tabs'}>
             <div className="tab-buttons">
-                <button className={activeTab === '1' ? 'active' : ''} onClick={() => setActiveTab('1')}>Gallery</button>
-                <button className={activeTab === '2' ? 'active' : ''} onClick={() => setActiveTab('2')}>Tools</button>
-                <button className={activeTab === '3' ? 'active' : ''} onClick={() => setActiveTab('3')}>Upload</button>
+                <button
+                    className={activeTab === '1' ? 'active' : ''}
+                    onClick={() => setActiveTab('1')}
+                >
+                    Gallery
+                </button>
+                <button
+                    className={activeTab === '2' ? 'active' : ''}
+                    onClick={() => setActiveTab('2')}
+                >
+                    Tools
+                </button>
+                <button
+                    className={activeTab === '3' ? 'active' : ''}
+                    onClick={() => setActiveTab('3')}
+                >
+                    Upload
+                </button>
             </div>
-
-            <div className="tab-content-container">
-                {renderTabContent()}
-                {isEndOfList && <p>All images are displayed</p>}
-            </div>
+            <div className="tab-content-container">{renderTabContent()}</div>
         </div>
     );
 };

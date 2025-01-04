@@ -1,0 +1,98 @@
+.interaction-component {
+  display: flex;
+  flex-direction: column;
+  gap: 12px; // Further reduced gap between sections
+  max-width: 600px;
+  margin: 0; // Removed auto centering from margin
+  padding: 0; // Removed outer padding completely for compactness
+
+  .comments-section {
+    .comments-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px; // Reduced spacing between comments
+
+      .comment-item {
+        padding: 4px; // Removed excessive padding from comment cards
+        background-color: #fff; // White background
+        border: 1px solid #ddd; // Slightly darker border for subtle separation
+        border-radius: 2px; // Reduced border radius
+        box-shadow: none; // No shadow for a cleaner compact look
+
+        display: flex;
+        flex-direction: column;
+        gap: 4px; // Maintain slight spacing for readability
+
+        .comment-username {
+          font-size: 12px; // Small font size for compactness
+          font-weight: bold;
+          color: #222;
+        }
+
+        .comment-description {
+          font-size: 14px;
+          line-height: 1.2; // Reduced line height for content
+          color: #333;
+        }
+
+        .comment-time {
+          font-size: 10px; // Smaller font size for secondary info
+          color: #666;
+        }
+      }
+
+      .no-comments {
+        text-align: center;
+        color: #aaa;
+        font-size: 12px; // Small font for compact messages
+      }
+    }
+
+    .add-comment-section {
+      display: flex;
+      flex-direction: column; // Changed to row for inline input and button layout
+      gap: 6px; // Small gap between input and button
+
+      .ant-input-textarea {
+        font-size: 12px; // Smaller input font size
+        background-color: #fafafa;
+        border-radius: 2px; // Minimal border radius
+        padding: 4px; // Reduced padding for compact input
+        border-color: #ccc;
+
+        &:hover {
+          border-color: #007bff;
+        }
+
+        &:focus {
+          border-color: #0056b3;
+          box-shadow: 0 0 1px rgba(0, 91, 179, 0.2); // Subtle shadow
+        }
+      }
+
+      .submit-comment-btn {
+        align-self: flex-end;
+        font-size: 12px; // Smaller button text
+        padding: 2px 8px; // Compact button size
+        background-color: #007bff; // Primary blue background
+        border-color: #007bff;  // Border matches background
+        color: #ffffff; // White font color for contrast
+
+        &:hover {
+          background-color: #0056b3; // Darker blue on hover
+          border-color: #0056b3;
+        }
+      }
+    }
+  }
+
+  .likes-count {
+    font-size: 12px;
+    color: #333;
+  }
+
+  .like-btn {
+    width: 24px; // Reduced button size further
+    height: 24px;
+  }
+}
