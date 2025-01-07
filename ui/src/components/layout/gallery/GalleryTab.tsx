@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Masonry from '@/components/common/masonry/Masonry.tsx';
 import { MediaItem } from '@/components/types/types.ts';
-import { Button, Input, Spin } from 'antd';
+import {Button, Input, message, Modal, Spin} from 'antd';
 import './GalleryTab.less';
 import InteractionComponent from "@/components/common/Interaction/InteractionComponent.tsx";
+import { DeleteOutlined } from "@ant-design/icons";
+import { deleteFile } from "@/services/services.ts";
+import {getUserID} from "@/services/setup.ts";
 
 const { Search } = Input;
 
@@ -18,6 +21,8 @@ const GalleryTab: React.FC<GalleryTabProps> = ({ mediaItems, isFetchingMore, isE
     const [popularTags, setPopularTags] = useState<{ tag: string; count: number }[]>([]);
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>("");
+
+    const loggedInUserId = parseInt(getUserID() || "-1", 10); // Convert to integer
 
     useEffect(() => {
         // Mock fetching popular tags (Replace with API fetch if needed)
@@ -77,6 +82,50 @@ const GalleryTab: React.FC<GalleryTabProps> = ({ mediaItems, isFetchingMore, isE
     const handleClearTags = () => setSelectedTags([]);
     const handleSearch = (value: string) => setSearchTerm(value);
 
+    // A wrapper function to handle file deletion
+    const handleDeleteFile = async (fileId: number | undefined) => {
+        if (!fileId) {
+            console.log("fileId is required and must not be undefined.")
+        }
+
+        // Show a confirmation pop-up before proceeding
+        Modal.confirm({
+            title: "Are you sure you want to delete this file?",
+            content: "Once deleted, this action cannot be undone!",
+            okText: "Delete",
+            cancelText: "Cancel",
+            okType: "danger",
+            onOk: async () => {
+                try {
+                    // Call deleteFileFromAPI to delete the file
+                    const successMessage = await deleteFile(fileId);
+
+                    // Update the state to remove the deleted file
+                    const updatedMediaItems = filteredMediaItems.filter(
+                        (item) => item.file_id !== fileId
+                    );
+                    setFilteredMediaItems(updatedMediaItems);
+
+                    // If mediaItems is maintained globally, update that too
+                    const updatedOriginalItems = mediaItems.filter(
+                        (item) => item.file_id !== fileId
+                    );
+
+                    // Set globally scoped items as well to stay in sync
+                    setFilteredMediaItems(updatedOriginalItems);
+
+                    // Show success message to the user
+                    message.success(successMessage);
+                } catch (error) {
+                    console.error("Error deleting file:", error);
+                    message.error(
+                        "Failed to delete the file. Please try again or contact support."
+                    );
+                }
+            },
+        });
+    };
+
     return (
         <div className="gallery-tab">
             <div className="search-and-popular-tags">
@@ -114,12 +163,30 @@ const GalleryTab: React.FC<GalleryTabProps> = ({ mediaItems, isFetchingMore, isE
                 gap={16}
                 items={filteredMediaItems}
                 btnConfig={
-                    filteredMediaItems.map((item, index) => [
-                        {
-                            btn_key: `InteractionPanel-${index}`, // Fixed btn_key template syntax
-                            btn: <InteractionComponent file={item} />, // Ensure proper file prop structure
+                    filteredMediaItems.map((item, index) => {
+                        // Start configuring dynamic button actions
+                        const buttons = [
+                            {
+                                btn_key: `interactionPanel-${index}`, // Fixed btn_key template syntax
+                                btn: <InteractionComponent file={item} />, // Ensure proper file prop structure
+                            },
+                        ];
+
+                        // Add the 'removeItem' button only if the user owns the item
+                        if (item.user_id === loggedInUserId) {
+                            buttons.push({
+                                btn_key: 'removeItem',
+                                btn: (
+                                    <Button
+                                        icon={<DeleteOutlined style={{ color: "red" }} />}
+                                        onClick={() => handleDeleteFile(item.file_id)}
+                                    />
+                                ),
+                            });
                         }
-                    ])
+
+                        return buttons;
+                    })
                 }
             />
 

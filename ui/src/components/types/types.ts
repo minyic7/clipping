@@ -29,6 +29,7 @@ export interface Item {
     src?: string; // File source URL
     file_interactions?: FileInteractionsSummary; // Summary of file interactions, e.g., likes, dislikes, and comments
     status?: "idle" | "uploading" | "success" | "error"; // Add status property
+    user_id?: number;
 }
 
 export interface MediaItem extends Item {

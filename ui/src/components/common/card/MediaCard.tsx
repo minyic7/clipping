@@ -25,7 +25,6 @@ const MediaCard: React.FC<MediaCardProps> = ({
     const [hovered, setHovered] = useState(false);
     const [isModalVisible, setIsModalVisible] = useState(false);
 
-
     const handleOpenModal = (e: React.MouseEvent) => {
         e.stopPropagation(); // Prevent opening a new modal if closing
         setIsModalVisible(true);
@@ -42,7 +41,7 @@ const MediaCard: React.FC<MediaCardProps> = ({
             style={{ width: typeof width === 'number' ? `${width}px` : width }}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
-            onClick={handleOpenModal}
+            onClick={handleOpenModal} // Keeps this for card click
         >
             {/* Add overlay with Spin for uploading items */}
             {status === 'uploading' && (
@@ -70,7 +69,11 @@ const MediaCard: React.FC<MediaCardProps> = ({
                         {btnConfig
                             .filter(({ btn_key }) => btn_key === 'removeItem') // Filter to only include 'removeItem'
                             .map(({ btn }, index) => (
-                                <div key={index} className="media-btn">
+                                <div
+                                    key={index}
+                                    className="media-btn"
+                                    onClick={(e) => e.stopPropagation()} // Stop propagation to prevent modal open
+                                >
                                     {btn}
                                 </div>
                             ))}
@@ -117,7 +120,11 @@ const MediaCard: React.FC<MediaCardProps> = ({
                         {btnConfig
                             .filter(({ btn_key }) => btn_key !== 'removeItem') // Filter out 'removeItem'
                             .map(({ btn }, index) => (
-                                <div key={index} className="media-btn">
+                                <div
+                                    key={index}
+                                    className="media-btn"
+                                    onClick={(e) => e.stopPropagation()} // Stop propagation to prevent modal open
+                                >
                                     {btn}
                                 </div>
                             ))}

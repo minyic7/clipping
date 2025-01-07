@@ -9,11 +9,12 @@ from .serializers import FileSerializer, FileInteractionSerializer
 from .services.r2_service import R2Service  # Ensure this is the correct import
 import logging
 from collections import Counter
+from rest_framework.exceptions import PermissionDenied  # Import for 403 responses
 
 
 # FileViewSet remains as is
 class FileViewSet(viewsets.ModelViewSet):
-    queryset = File.objects.all()
+    queryset = File.objects.all().order_by('-created_datetime')
     serializer_class = FileSerializer
     permission_classes = [IsAuthenticated]
 
@@ -33,7 +34,28 @@ class FileViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        serializer.save(user_id=user)
+        serializer.save(user=user)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Override the default delete (destroy) method to ensure the file belongs to the requesting user.
+        """
+        file = self.get_object()  # Retrieve the file instance corresponding to file_id
+        user = request.user  # Currently authenticated user
+
+        # Check if the authenticated user owns the file
+        if file.user_id != user:
+            raise PermissionDenied(detail="You do not have permission to delete this file.")
+
+        # If the user is the owner, proceed with deletion
+        self.perform_destroy(file)
+        return Response({"message": "File deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+
+    def perform_destroy(self, instance):
+        """
+        Perform the deletion of the file instance.
+        """
+        instance.delete()
 
     # Custom action for deleting all files, e.g. /api/v1/file/delete_all/, WARNING: use this method with caution
     @action(detail=False, methods=['delete'], permission_classes=[IsAuthenticated])

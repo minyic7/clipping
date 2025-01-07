@@ -80,6 +80,7 @@ export const fetchItems = async (): Promise<{ items: Item[], next: string | null
             description: item.description,
             tags: item.tags,
             src: item.url, // Assign 'url' to 'src'
+            user_id: item.user_id,
         }));
 
         return {items, next: response.data.next};
@@ -111,6 +112,7 @@ export const fetchMoreItems = async (nextUrl: string | null): Promise<{ items: I
             description: item.description,
             tags: item.tags,
             src: item.url,
+            user_id: item.user_id,
         }));
 
         return {items, next: response.data.next};
@@ -288,4 +290,37 @@ export const deleteInteraction = async (
         // Throw unknown error
         throw new Error("Unexpected error occurred while deleting the interaction.");
     }
+};
+
+
+/**
+ * Function to delete a file by its ID.
+ * @param fileId - The ID of the file to be deleted.
+ * @returns A success message if the file is successfully deleted, otherwise throws an error.
+ */
+export const deleteFile = async (fileId: number | undefined): Promise<string> => {
+    // Validate that the fileId is provided
+    if (!fileId) {
+        throw new Error("fileId is required and must not be undefined.");
+    }
+
+    // Make a DELETE request to the backend
+    const response = await apiRequest(`file/${fileId}/`, {
+        method: "DELETE",
+    });
+
+    // Handle specific errors (e.g., 403 Forbidden)
+    if (response.status === 403) {
+        throw new Error("You do not have permission to delete this file.");
+    }
+
+    // Check if the response status is 204 (success, no content)
+    if (response.status === 204) {
+        console.log(`File with ID ${fileId} deleted successfully.`);
+        return `File with ID ${fileId} has been successfully deleted.`;
+    } else {
+        throw new Error("Failed to delete file.");
+    }
+
+
 };

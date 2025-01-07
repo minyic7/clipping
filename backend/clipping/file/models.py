@@ -26,7 +26,7 @@ class File(models.Model):
     created_datetime = models.DateTimeField(default=timezone.now)
     last_updated_datetime = models.DateTimeField(default=timezone.now)
     description = models.TextField(null=True, blank=True)
-    user_id = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, db_column='user_id')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, db_column='user_id')
 
     def get_url(self):
         # Construct the URL for accessing the file
