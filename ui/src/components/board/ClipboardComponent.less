@@ -5,64 +5,52 @@
   padding: 20px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  background-color: #ffffff; // White background for a clean look
+  background-color: #ffffff;
   max-width: 500px;
   margin: 20px auto;
 
   h3 {
     font-size: 16px;
     font-weight: 500;
-    color: #444; // Neutral dark color for the title
+    color: #444;
     margin-bottom: 10px;
     text-align: center;
   }
 
-  // Style for the text area
-  .ant-input {
-    width: 100%;
-    border-radius: 4px;
-    resize: none; // Prevent manual resizing
-    transition: border-color 0.2s;
-
-    &:hover,
-    &:focus {
-      border-color: #1890ff; // Ant Design's default primary color
-    }
-  }
-
-  // Button group styling
   .button-group {
     display: flex;
-    justify-content: space-between; // Space between the buttons
-    width: 100%; // Button width matches the text area
+    justify-content: space-between;
+    width: 100%;
     margin-top: 10px;
 
     .ant-btn {
       flex: 1;
-      margin: 0 5px; // Add space between buttons
-      font-size: 14px;
+      margin: 0 5px;
       padding: 5px 0;
-      border-radius: 4px;
+      font-size: 14px;
+    }
+  }
+
+  .last-sent-message,
+  .fetched-content {
+    margin-top: 20px;
+    width: 100%;
+    background-color: #f9f9f9;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+
+    h4 {
+      font-size: 14px;
+      margin-bottom: 5px;
+      color: #333;
     }
 
-    .ant-btn-primary {
-      background-color: #1890ff; // Primary button color
-      border-color: #1890ff;
-
-      &:hover {
-        background-color: #40a9ff;
-        border-color: #40a9ff;
-      }
-    }
-
-    .ant-btn-default {
-      background-color: #f5f5f5; // Default button background
-      border-color: #d9d9d9;
-
-      &:hover {
-        background-color: #f0f0f0;
-        border-color: #cccccc;
-      }
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: #555;
+      word-wrap: break-word; // Ensure long text wraps properly
     }
   }
 }

@@ -6,9 +6,11 @@ import { apiRequest } from "@/services/setup.ts";
 const { TextArea } = Input;
 
 const ClipboardComponent: React.FC = () => {
-    const [clipboardContent, setClipboardContent] = useState<string>("");
+    const [clipboardContent, setClipboardContent] = useState<string>(""); // Current clipboard content
+    const [lastSentMessage, setLastSentMessage] = useState<string>(""); // Track the latest sent message
+    const [fetchedContent, setFetchedContent] = useState<string>(""); // Store fetched content
 
-    // Sync content with backend
+    // Sync content with backend (optional use case for extensibility)
     const syncClipboardContent = useCallback((content: string) => {
         console.log("Synchronizing clipboard content:", content);
     }, []);
@@ -22,11 +24,22 @@ const ClipboardComponent: React.FC = () => {
 
     // Handle sending clipboard content via POST request
     const handleSendClipboardContent = async () => {
+        if (!clipboardContent.trim()) {
+            message.warning("Clipboard content is empty. Please enter some text.");
+            return;
+        }
+
         try {
             const response = await apiRequest("sharedboard/", {
                 method: "POST",
                 data: { message: clipboardContent },
             });
+
+            // Track the last sent message
+            setLastSentMessage(clipboardContent);
+
+            // Clear the clipboard content after sending
+            setClipboardContent("");
 
             message.success("Clipboard content sent successfully!");
             console.log("POST Response:", response.data);
@@ -39,11 +52,13 @@ const ClipboardComponent: React.FC = () => {
     // Handle fetching the latest clipboard content via GET request
     const handleFetchClipboardContent = async () => {
         try {
-            const response = await apiRequest<{ message: string }>("sharedboard/", {
+            const response = await apiRequest<{ latest_message: string }>("sharedboard/", {
                 method: "GET",
             });
 
-            setClipboardContent(response.data.message);
+            // Use response.data directly to get the latest message
+            setFetchedContent(response.data.latest_message);
+
             message.success("Clipboard content fetched successfully!");
             console.log("GET Response:", response.data);
         } catch (error) {
@@ -69,6 +84,22 @@ const ClipboardComponent: React.FC = () => {
                     Fetch
                 </Button>
             </div>
+
+            {/* Last Sent Message */}
+            {lastSentMessage && (
+                <div className="last-sent-message">
+                    <h4>Last Sent Message:</h4>
+                    <p>{lastSentMessage}</p>
+                </div>
+            )}
+
+            {/* Fetched Content */}
+            {fetchedContent && (
+                <div className="fetched-content">
+                    <h4>Fetched Content:</h4>
+                    <p>{fetchedContent}</p>
+                </div>
+            )}
         </div>
     );
 };
