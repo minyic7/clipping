@@ -252,8 +252,6 @@ def get_pre_signed_urls(request):
 
     try:
         # Extract the actual keys from dictionaries
-        print(type(objects[0]), objects, '--------------')
-
         # Get pre-signed URLs for the object keys
         pre_signed_urls = R2Service.get_pre_signed_urls(objects)
         if pre_signed_urls is None:

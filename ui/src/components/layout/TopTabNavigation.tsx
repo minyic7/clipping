@@ -6,6 +6,7 @@ import { Item, MediaItem } from "@/components/types/types.ts";
 import { UploadStatus } from "@/services/types.ts";
 import { fetchItems, fetchMoreItems } from "@/services/services.ts";
 import { Spin } from 'antd';
+import ClipboardComponent from "@/components/board/ClipboardComponent.tsx";
 
 const TopTabNavigation: React.FC = () => {
     // States for Dark Mode and Tab Navigation
@@ -125,7 +126,9 @@ const TopTabNavigation: React.FC = () => {
                     </div>
                 );
             case '2':
-                return <h1>还没做，不知道做啥</h1>;
+                return (
+                    <ClipboardComponent />
+                );
             case '3':
                 return (
                     <UploadFileTab
