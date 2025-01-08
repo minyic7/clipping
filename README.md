@@ -50,6 +50,11 @@ ingress:
 - service: http_status:404
 ```
 ### Docker Commands
+Build the dist folder
+```bash
+npm run build
+```
+
 Build the Docker image:
 ```bash
 docker build -t clipping-world .
