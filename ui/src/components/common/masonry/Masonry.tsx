@@ -105,6 +105,7 @@ const Masonry: React.FC<MasonryProps> = ({ maxCols, minCols, maxColWidth, minCol
                                         src={mediaItem.src}
                                         title={mediaItem.title}
                                         description={mediaItem.description}
+                                        created_datetime={mediaItem.created_datetime}
                                         width={colWidth}
                                         tags={mediaItem.tags}
                                         btnConfig={btnConfig?.[itemIndex]} // Pass btnConfig for each specific item

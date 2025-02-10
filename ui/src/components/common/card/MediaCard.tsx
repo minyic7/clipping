@@ -17,6 +17,7 @@ const MediaCard: React.FC<MediaCardProps> = ({
                                                  src,
                                                  title,
                                                  description,
+                                                 created_datetime,
                                                  width,
                                                  tags,
                                                  btnConfig,
@@ -62,7 +63,6 @@ const MediaCard: React.FC<MediaCardProps> = ({
             )}
 
             <div className={`media-info ${hovered ? 'hovered' : ''}`}>
-                <h3>{title}</h3>
                 <p style={{ marginBottom: '10px' }}>{description}</p>
                 {btnConfig && (
                     <div className="top-right-buttons">
@@ -113,6 +113,11 @@ const MediaCard: React.FC<MediaCardProps> = ({
                                 {tag}
                             </Tag>
                         ))}
+                    </div>
+                )}
+                {created_datetime && (
+                    <div className="created-datetime">
+                        Created on: {new Date(created_datetime).toLocaleString()}
                     </div>
                 )}
                 {btnConfig && (

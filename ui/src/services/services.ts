@@ -78,6 +78,7 @@ export const fetchItems = async (): Promise<{ items: Item[], next: string | null
             width: item.width,
             title: removeEndingSuffix(item.object_key), // Using object_key as title if it fits your design
             description: item.description,
+            created_datetime: item.created_datetime,
             tags: item.tags,
             src: item.url, // Assign 'url' to 'src'
             user_id: item.user_id,
@@ -110,6 +111,7 @@ export const fetchMoreItems = async (nextUrl: string | null): Promise<{ items: I
             width: item.width,
             title: removeEndingSuffix(item.object_key),
             description: item.description,
+            created_datetime: item.created_datetime,
             tags: item.tags,
             src: item.url,
             user_id: item.user_id,

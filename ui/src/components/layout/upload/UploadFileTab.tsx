@@ -38,6 +38,7 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
         return new Promise((resolve, reject) => {
             const img = new Image();
             img.onload = () => {
+                console.log('img', img, img.width, img.height)
                 resolve({width: img.width, height: img.height});
                 if (img.src) {
                     URL.revokeObjectURL(img.src);

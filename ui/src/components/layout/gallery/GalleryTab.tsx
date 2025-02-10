@@ -6,7 +6,7 @@ import './GalleryTab.less';
 import InteractionComponent from "@/components/common/Interaction/InteractionComponent.tsx";
 import { DeleteOutlined } from "@ant-design/icons";
 import { deleteFile } from "@/services/services.ts";
-import {getUserID} from "@/services/setup.ts";
+import { getUserID } from "@/services/setup.ts";
 
 const { Search } = Input;
 
@@ -18,44 +18,13 @@ interface GalleryTabProps {
 
 const GalleryTab: React.FC<GalleryTabProps> = ({ mediaItems, isFetchingMore, isEndOfList }) => {
     const [filteredMediaItems, setFilteredMediaItems] = useState<MediaItem[]>(mediaItems);
-    const [popularTags, setPopularTags] = useState<{ tag: string; count: number }[]>([]);
-    const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>("");
 
     const loggedInUserId = parseInt(getUserID() || "-1", 10); // Convert to integer
 
     useEffect(() => {
-        // Mock fetching popular tags (Replace with API fetch if needed)
-        const fetchPopularTags = async () => {
-            // Example of fetching tags based on mediaItems input
-            const tagCounts = mediaItems.reduce((acc: Record<string, number>, item) => {
-                item.tags?.forEach((tag) => {
-                    acc[tag] = (acc[tag] || 0) + 1;
-                });
-                return acc;
-            }, {});
-
-            const sortedTags = Object.entries(tagCounts)
-                .map(([tag, count]) => ({ tag, count }))
-                .sort((a, b) => b.count - a.count)
-                .slice(0, 10);
-
-            setPopularTags(sortedTags);
-        };
-
-        fetchPopularTags();
-    }, [mediaItems]);
-
-    useEffect(() => {
         const applyFilters = () => {
             let filtered = [...mediaItems];
-
-            // Filter by selected tags
-            if (selectedTags.length > 0) {
-                filtered = filtered.filter((item) =>
-                    item.tags?.some((tag) => selectedTags.includes(tag))
-                );
-            }
 
             // Search through the title, description, and tags
             if (searchTerm.trim()) {
@@ -71,15 +40,8 @@ const GalleryTab: React.FC<GalleryTabProps> = ({ mediaItems, isFetchingMore, isE
         };
 
         applyFilters();
-    }, [selectedTags, searchTerm, mediaItems]);
+    }, [searchTerm, mediaItems]);
 
-    const handleTagClick = (tag: string) => {
-        setSelectedTags((prev) =>
-            prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-        );
-    };
-
-    const handleClearTags = () => setSelectedTags([]);
     const handleSearch = (value: string) => setSearchTerm(value);
 
     // A wrapper function to handle file deletion
@@ -137,22 +99,6 @@ const GalleryTab: React.FC<GalleryTabProps> = ({ mediaItems, isFetchingMore, isE
                     value={searchTerm}
                     style={{ marginBottom: 16, width: '100%' }}
                 />
-                <div className="popular-tags">
-                    {popularTags.map((tag) => (
-                        <Button
-                            key={tag.tag}
-                            className={`tag-item ${
-                                selectedTags.includes(tag.tag) ? 'selected' : ''
-                            }`}
-                            onClick={() => handleTagClick(tag.tag)}
-                        >
-                            {tag.tag}
-                        </Button>
-                    ))}
-                    {selectedTags.length > 0 && (
-                        <Button onClick={handleClearTags}>Clear Filters</Button>
-                    )}
-                </div>
             </div>
 
             <Masonry
