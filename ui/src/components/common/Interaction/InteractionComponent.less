@@ -1,124 +1,152 @@
-.interaction-component {
-  display: flex;
-  flex-direction: column;
-  gap: 12px; // Further reduced gap between sections
-  max-width: 600px;
-  margin: 0; // Removed auto centering from margin
-  padding: 0; // Removed outer padding completely for compactness
+.like-btn {
+  background: transparent; // Removes the grey background
+  border: none;            // Removes the button border
+  box-shadow: none;        // Removes any shadow applied to the button
+  padding: 0;              // Removes extra padding for a cleaner appearance
+  outline: none;           // Removes the focus outline
 
-  .comments-section {
-    .comments-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px; // Reduced spacing between comments
-
-      .comment-item {
-        position: relative; /* Enable positioning for the delete button */
-        padding: 4px; // Removed excessive padding from comment cards
-        background-color: #fff; // White background
-        border: 1px solid #ddd; // Slightly darker border for subtle separation
-        border-radius: 2px; // Reduced border radius
-        box-shadow: none; // No shadow for a cleaner compact look
-
-        display: flex;
-        flex-direction: column;
-        gap: 4px; // Maintain slight spacing for readability
-
-        .comment-username {
-          font-size: 12px; // Small font size for compactness
-          font-weight: bold;
-          color: #222;
-        }
-
-        .comment-description {
-          font-size: 14px;
-          line-height: 1.2; // Reduced line height for content
-          color: #333;
-        }
-
-        .comment-time {
-          font-size: 10px; // Smaller font size for secondary info
-          color: #666;
-        }
-      }
-
-      .no-comments {
-        text-align: center;
-        color: #aaa;
-        font-size: 12px; // Small font for compact messages
-      }
-    }
-
-    .add-comment-section {
-      display: flex;
-      flex-direction: column; // Changed to row for inline input and button layout
-      gap: 6px; // Small gap between input and button
-
-      .ant-input-textarea {
-        font-size: 12px; // Smaller input font size
-        background-color: #fafafa;
-        border-radius: 2px; // Minimal border radius
-        padding: 4px; // Reduced padding for compact input
-        border-color: #ccc;
-
-        &:hover {
-          border-color: #007bff;
-        }
-
-        &:focus {
-          border-color: #0056b3;
-          box-shadow: 0 0 1px rgba(0, 91, 179, 0.2); // Subtle shadow
-        }
-      }
-
-      .submit-comment-btn {
-        align-self: flex-end;
-        font-size: 12px; // Smaller button text
-        padding: 2px 8px; // Compact button size
-        background-color: #007bff; // Primary blue background
-        border-color: #007bff;  // Border matches background
-        color: #ffffff; // White font color for contrast
-
-        &:hover {
-          background-color: #0056b3; // Darker blue on hover
-          border-color: #0056b3;
-        }
-      }
-    }
+  &:hover {
+    background: transparent; // Ensures no background appears on hover
   }
 
-  .ant-btn.like-btn {
-    all: unset; // Reset all inherited styles
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    border-radius: 50%; // Ensure the button remains circular
-    background-color: transparent;
-    transition: box-shadow 0.2s ease-in-out; // Smooth transition for hover effect
-
-    &:hover {
-      box-shadow: 0 0 6px 2px rgba(255, 0, 0, 0.4); // Red outline glow on hover
-    }
-
-    &:active {
-      box-shadow: 0 0 4px 2px rgba(255, 0, 0, 0.6); // Slightly darker red glow on click
-      transition: none; // Instant feedback when active
-    }
+  &:active {
+    background: transparent; // Ensures no background appears when active
   }
-
-  .likes-count {
-    margin: 0;
-    font-size: 12px;
-    color: #333;
-  }
-
-  .delete-comment-btn {
-    position: absolute;
-    top: 5px;
-    right: 5px;
+  &:disabled {
+    background: transparent; // Ensures no background appears when active
   }
 }
 
+.guest-login-link {
+  color: #007bff; // Blue color for the link
+  text-decoration: underline; // Clear that it's a link
+  font-style: italic; // Friendly and subtle
+  font-weight: 500; // Slight bold for emphasis
+  text-align: center; // Center aligned
+  display: block; // Treat the link like its own block
+  margin: 10px 0; // Add spacing above and below
+
+  &:hover {
+    color: #0056b3; // Darker blue for hover effect
+    text-decoration: none; // Clean look on hover
+  }
+}
+
+.comments-list {
+  display: flex;                // Activates flexbox layout
+  flex-direction: column;       // Arranges child items vertically
+  gap: 15px;                    // Adds spacing between each child (comment item)
+  margin-bottom: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: rgba(30, 30, 30, 0.2) 1px solid;
+}
+
+.comment-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; // Align avatar and content at the top
+  position: relative; // For delete button positioning
+  padding-bottom: 5px;
+  border-bottom: rgba(30, 30, 30, 0.2) 1px solid;
+}
+
+.avatar-username {
+  display: flex;
+  align-items: center; // Align avatar and content at the top
+  justify-content: center;
+
+  position: relative; // For delete button positioning
+
+  // User Avatar (Adjusted)
+  .comment-avatar {
+    width: 25px; // Smaller width
+    height: 25px; // Smaller height
+    background-color: transparent; // Transparent background
+    border: 1px solid rgba(30, 30, 30, 0.44); // Border for visibility
+    color: rgba(30, 30, 30, 0.44); // Blue text color to match border
+    font-weight: bold;
+    font-size: 12px; // Smaller font size for initials
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 5px;
+  }
+
+  .comment-username {
+    font-weight: bold; // Bold username
+    font-size: 14px; // Slightly larger font
+  }
+}
+
+// Comment Content
+.comment-content {
+  flex: 1; // Fill remaining horizontal space
+  display: flex;
+  flex-direction: column;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between; // Username on left
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.comment-description {
+  font-size: 14px; // Comment text size
+  color: #555; // Neutral tone
+  margin-bottom: 5px; // Add space between description and time
+}
+
+.comment-time {
+  font-size: 12px; // Smaller font for time
+  color: #888; // Subtle gray for time
+  margin-top: 5px; // Add spacing above the datetime
+}
+
+// Delete Button
+.delete-comment-btn {
+  position: absolute; // Position at the top-right corner
+  top: 3px;
+  right: 3px;
+  cursor: pointer;
+  padding: 0;
+
+  // Ensure the button has no background, border, or shadow
+  background-color: transparent; // Ensure no default background
+  border: none;                  // Remove borders
+  box-shadow: none;              // Ensure no box shadow
+
+  &:hover {
+    background-color: transparent !important;  // Remove hover background completely
+    text-decoration: underline;                // Add underline as hover effect
+    box-shadow: none;                          // Remove hover-specific shadow
+    border: none;                              // Prevent any hover border effect
+  }
+
+  &:focus {
+    background-color: transparent !important;  // Remove focus styles if any
+    box-shadow: none;                          // Prevent default focus box-shadow
+    border: none;                              // Ensure border is removed
+  }
+
+  // Specificity adjustments for Ant Design buttons
+  &&.ant-btn {
+    background-color: transparent; // Default state for Ant Design button
+    border: none;
+    box-shadow: none;
+
+    &:hover {
+      background-color: transparent !important;  // Override Ant Design hover background
+      box-shadow: none;                          // Override hover shadow
+    }
+  }
+}
+
+.add-comment-section {
+  .add-comment-input {
+    margin-bottom: 8px;
+  }
+}

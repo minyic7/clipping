@@ -12,7 +12,7 @@ class FileSerializer(serializers.ModelSerializer):
         fields = [
             'file_id', 'bucket_name', 'object_key', 'file_type',
             'width', 'height', 'tags', 'created_datetime',
-            'last_updated_datetime', 'description', 'user_id', 'url'
+            'last_updated_datetime', 'description', 'file_caption', 'user_id', 'url'
         ]
         read_only_fields = ['file_id', 'created_datetime', 'last_updated_datetime', 'user_id']
 
@@ -65,7 +65,6 @@ class FileSerializer(serializers.ModelSerializer):
             # Add any other mappings as needed
         }
         return file_type_map.get(file_type.lower(), File.FileType.OTHER)
-
 
 
 class FileInteractionSerializer(serializers.ModelSerializer):

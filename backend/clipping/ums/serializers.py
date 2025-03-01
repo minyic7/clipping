@@ -6,7 +6,7 @@ from .models import UserProfile
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
-        fields = ['mobile']
+        fields = ['mobile', 'is_guest']
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -15,7 +15,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'password', 'email', 'first_name', 'last_name', 'profile']
+        fields = '__all__'
+        # fields = ['id', 'username', 'password', 'email', 'first_name', 'last_name', 'profile']
 
     def create(self, validated_data):
         profile_data = validated_data.pop('profile', None)

@@ -1,13 +1,21 @@
-import './App.less'
-import TopTabNavigation from "./components/layout/TopTabNavigation.tsx";
+import './App.less';
+import {Outlet} from "react-router-dom";
+import AppHeader from "@/components/layout/header/AppHeader.tsx";
+
 
 function App() {
 
     return (
         <>
-            <TopTabNavigation />
+            {/* Top Ribbon */}
+            <AppHeader />
+
+            {/*Main Content Area */}
+            <main className="content-container">
+                <Outlet/>
+            </main>
         </>
-    )
+    );
 }
 
-export default App
+export default App;

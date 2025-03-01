@@ -2,7 +2,6 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from .models import File, FileInteraction
 from .serializers import FileSerializer, FileInteractionSerializer
@@ -10,13 +9,34 @@ from .services.r2_service import R2Service  # Ensure this is the correct import
 import logging
 from collections import Counter
 from rest_framework.exceptions import PermissionDenied  # Import for 403 responses
+from rest_framework.permissions import BasePermission
+
+
+class IsGuestUserOrReadOnly(BasePermission):
+    """
+    Custom permission to allow read-only access for guest users.
+    """
+
+    def has_permission(self, request, view):
+
+        # Allow full access to authenticated users who are not guests
+        if request.user.is_authenticated:
+            # Check if the user has a profile and if they are marked as a guest
+            if hasattr(request.user, 'profile') and request.user.profile.is_guest:
+                # For guest users, allow only safe methods (read-only)
+                return request.method in ['GET', 'HEAD', 'OPTIONS']
+            return True  # Allow for non-guest users
+
+        # Deny access for unauthenticated users
+        return False
+
 
 
 # FileViewSet remains as is
 class FileViewSet(viewsets.ModelViewSet):
     queryset = File.objects.all().order_by('-created_datetime')
     serializer_class = FileSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsGuestUserOrReadOnly]
 
     def create(self, request, *args, **kwargs):
 
@@ -44,7 +64,10 @@ class FileViewSet(viewsets.ModelViewSet):
         user = request.user  # Currently authenticated user
 
         # Check if the authenticated user owns the file
-        if file.user_id != user:
+        if file.user_id != user.id:
+            logging.error(
+                f"User {user.username} [{user.id}] attempted to delete file {file.user_id} but does not own it."
+            )
             raise PermissionDenied(detail="You do not have permission to delete this file.")
 
         # If the user is the owner, proceed with deletion
@@ -96,7 +119,7 @@ class FileViewSet(viewsets.ModelViewSet):
 
         return Response({"tags": ranked_tags}, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=['post'], permission_classes=[IsGuestUserOrReadOnly])
     def interact(self, request, pk=None):
         """
         Handle user interaction (like or comment) for a file.
@@ -192,7 +215,7 @@ class FileViewSet(viewsets.ModelViewSet):
 
         return Response(interaction_list, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['delete'], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=['delete'], permission_classes=[IsGuestUserOrReadOnly])
     def delete_interaction(self, request, pk=None):
         """
         Allow a user to delete their specific interaction (like, dislike, or comment) for a file.
@@ -234,7 +257,7 @@ class FileViewSet(viewsets.ModelViewSet):
 
 # Standalone view to get pre-signed URLs
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsGuestUserOrReadOnly])
 def get_pre_signed_urls(request):
     # Extract the list of object keys from the POST request
     objects = request.data

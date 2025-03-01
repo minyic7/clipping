@@ -1,10 +1,33 @@
+import json
+import logging
+
 from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField  # Import ArrayField
 from .services.r2_service import R2Service
+from .services.generative_service import GPTService
 
+
+# Define the custom logger
+logger = logging.getLogger('my_logger')
+
+def safe_gpt_generate(gpt_service, prompt_key, return_format, media_object):
+    """Helper to safely call GPTService and handle errors."""
+    try:
+        result = gpt_service.generate(
+            prompt_key=prompt_key,
+            return_format=return_format,
+            media_object=media_object
+        )
+        if 'error' in result:
+            logger.error(f"GPTService error: {result['error']} for {media_object}")
+            return None
+        return result['content']
+    except Exception as e:
+        logger.error(f"Unexpected GPTService exception: {e}", exc_info=True)
+        return None
 
 
 class File(models.Model):
@@ -26,6 +49,7 @@ class File(models.Model):
     created_datetime = models.DateTimeField(default=timezone.now)
     last_updated_datetime = models.DateTimeField(default=timezone.now)
     description = models.TextField(null=True, blank=True)
+    file_caption = models.TextField(null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, db_column='user_id')
 
     def get_url(self):
@@ -35,7 +59,48 @@ class File(models.Model):
 
     # To update the 'last_updated_datetime' on model save
     def save(self, *args, **kwargs):
+        # Check if this is a new object (creation)
+        is_new = self.pk is None
+
         self.last_updated_datetime = timezone.now()
+
+        # Construct the media object URL
+        media_object = self.get_url()
+
+        # Decide when to run GPT logic:
+        # Trigger for new objects OR objects missing captions/tags
+        should_generate_tags_and_captions = is_new or (
+                self.file_type == self.FileType.IMAGE and (not self.file_caption))
+        logger.info(f'should_generate_tags_and_captions: {should_generate_tags_and_captions}')
+
+        if should_generate_tags_and_captions:
+            try:
+                gpt_service = GPTService()
+                logger.debug(f"GPTService initialized for media object: {media_object}")
+
+                # Generate the caption if missing
+                if not self.file_caption:
+                    caption_content = safe_gpt_generate(gpt_service, "generate_file_caption", "text", media_object)
+                    if caption_content:
+                        self.file_caption = caption_content
+                        logger.info(f"Generated caption for {media_object}: {self.file_caption}")
+
+                # Generate the tags if missing
+                tags_content = safe_gpt_generate(gpt_service, "generate_tags", "list", media_object)
+                if tags_content:
+                    try:
+                        generated_tags = json.loads(tags_content)
+                        logger.debug(f"Parsed generated tags: {generated_tags}")
+                    except json.JSONDecodeError:
+                        logger.error(f"Error decoding tags response for {media_object}")
+                        generated_tags = []
+
+                    self.tags = self.tags + generated_tags
+            except Exception as e:
+                logger.exception(f"Error processing media object '{media_object}': {e}")
+                self.file_caption = "Error generating caption."
+
+        # Save the object to the database
         super().save(*args, **kwargs)
 
     def __repr__(self):

@@ -105,6 +105,7 @@ const Masonry: React.FC<MasonryProps> = ({ maxCols, minCols, maxColWidth, minCol
                                         src={mediaItem.src}
                                         title={mediaItem.title}
                                         description={mediaItem.description}
+                                        // file_caption={mediaItem.file_caption}
                                         created_datetime={mediaItem.created_datetime}
                                         width={colWidth}
                                         tags={mediaItem.tags}

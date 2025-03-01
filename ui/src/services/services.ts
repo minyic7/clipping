@@ -59,50 +59,16 @@ export const postUploadedItems = async (uploadStatuses: UploadStatus[]): Promise
 };
 
 /**
- * Function to fetch file items using GET method.
- * @returns Array of file items as a list of Item objects.
+ * Helper function to fetch file items from the given URL.
+ * @param url - The API endpoint to fetch items from.
+ * @returns Promise containing items and next pagination URL.
  */
-export const fetchItems = async (): Promise<{ items: Item[], next: string | null }> => {
+const fetchItemsFromApi = async (url: string): Promise<{ items: Item[], next: string | null }> => {
     try {
-        // Make a GET request to the 'file/' endpoint
-        const response = await apiRequest<FileApiResponse>('file/', {
-            method: 'GET',
-        });
+        // Make an API request
+        const response = await apiRequest<FileApiResponse>(url, { method: 'GET' });
 
-        // Extract items from the results field
-        const items: Item[] = response.data.results.map((item: FileApiResponseItem) => ({
-            file_id: item.file_id,
-            object_key: item.object_key,
-            file_type: mapFileType(item.file_type),
-            height: item.height,
-            width: item.width,
-            title: removeEndingSuffix(item.object_key), // Using object_key as title if it fits your design
-            description: item.description,
-            created_datetime: item.created_datetime,
-            tags: item.tags,
-            src: item.url, // Assign 'url' to 'src'
-            user_id: item.user_id,
-        }));
-
-        return {items, next: response.data.next};
-    } catch (error) {
-        console.error('Error fetching media items:', error);
-        throw error;
-    }
-};
-
-export const fetchMoreItems = async (nextUrl: string | null): Promise<{ items: Item[], next: string | null }> => {
-    console.log('nextUrl', nextUrl);
-    if (!nextUrl) {
-        console.log("All items have been loaded.");
-        return {items: [], next: null};
-    }
-
-    try {
-        const response = await apiRequest<FileApiResponse>(nextUrl, {
-            method: 'GET',
-        });
-
+        // Transform the response data into Item objects
         const items: Item[] = response.data.results.map((item: FileApiResponseItem) => ({
             file_id: item.file_id,
             object_key: item.object_key,
@@ -111,18 +77,43 @@ export const fetchMoreItems = async (nextUrl: string | null): Promise<{ items: I
             width: item.width,
             title: removeEndingSuffix(item.object_key),
             description: item.description,
+            file_caption: item.file_caption,
             created_datetime: item.created_datetime,
             tags: item.tags,
             src: item.url,
             user_id: item.user_id,
         }));
 
-        return {items, next: response.data.next};
+        return { items, next: response.data.next };
     } catch (error) {
-        console.error('Error fetching more items:', error);
+        console.error(`Error fetching items from ${url}:`, error);
         throw error;
     }
 };
+
+/**
+ * Function to fetch the initial set of file items.
+ * @returns Promise containing items and next pagination URL.
+ */
+export const fetchItems = async (): Promise<{ items: Item[], next: string | null }> => {
+    console.log('fetch items')
+    return fetchItemsFromApi('file/');
+};
+
+/**
+ * Function to fetch the next set of file items for pagination.
+ * @param nextUrl - The URL to fetch the next set of items.
+ * @returns Promise containing items and next pagination URL.
+ */
+export const fetchMoreItems = async (nextUrl: string | null): Promise<{ items: Item[], next: string | null }> => {
+    console.log('fetch more items', nextUrl)
+    if (!nextUrl) {
+        console.log("All items have been loaded.");
+        return { items: [], next: null };
+    }
+    return fetchItemsFromApi(nextUrl);
+};
+
 
 /**
  * Helper function to map numeric file_type to string representation.
@@ -267,7 +258,7 @@ export const deleteInteraction = async (
     }
 
     try {
-        // Make a DELETE request to the backend with the interaction ID and type
+        // Make a DELETE request to the backend with the interaction ID and typea
         const response: AxiosResponse<{ message: string }> = await apiRequest(`file/${fileId}/delete_interaction/`, {
             method: "DELETE",
             data: {

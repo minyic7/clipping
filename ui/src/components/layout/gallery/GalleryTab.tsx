@@ -1,148 +1,141 @@
-import React, { useState, useEffect } from 'react';
-import Masonry from '@/components/common/masonry/Masonry.tsx';
-import { MediaItem } from '@/components/types/types.ts';
-import {Button, Input, message, Modal, Spin} from 'antd';
-import './GalleryTab.less';
+import React, { useEffect, useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/store/store.ts";
+import { deleteMediaItem, fetchGalleryItems, fetchMoreGalleryItems } from "@/store/slices/gallerySlice.ts";
+import Masonry from "@/components/common/masonry/Masonry.tsx";
+import { Button, message, Modal, Spin } from "antd";
+import "./GalleryTab.less";
 import InteractionComponent from "@/components/common/Interaction/InteractionComponent.tsx";
 import { DeleteOutlined } from "@ant-design/icons";
-import { deleteFile } from "@/services/services.ts";
 import { getUserID } from "@/services/setup.ts";
+import { MediaItem } from "@/components/types/types.ts";
 
-const { Search } = Input;
+const GalleryTab: React.FC = () => {
+    const dispatch = useDispatch<AppDispatch>();
 
-interface GalleryTabProps {
-    mediaItems: MediaItem[];
-    isFetchingMore: boolean;
-    isEndOfList: boolean;
-}
+    // Select state from Redux store
+    const { mediaItems, isFetchingMore, isEndOfList, isLoadingInitial, nextUrl, searchTerm } = useSelector(
+        (state: RootState) => state.gallery
+    );
 
-const GalleryTab: React.FC<GalleryTabProps> = ({ mediaItems, isFetchingMore, isEndOfList }) => {
-    const [filteredMediaItems, setFilteredMediaItems] = useState<MediaItem[]>(mediaItems);
-    const [searchTerm, setSearchTerm] = useState<string>("");
+    const loggedInUserId = parseInt(getUserID() || "-1", 10);
 
-    const loggedInUserId = parseInt(getUserID() || "-1", 10); // Convert to integer
-
+    // Fetch media items on component mount
     useEffect(() => {
-        const applyFilters = () => {
-            let filtered = [...mediaItems];
+        dispatch(fetchGalleryItems());
+    }, [dispatch]);
 
-            // Search through the title, description, and tags
-            if (searchTerm.trim()) {
-                const searchTermLower = searchTerm.toLowerCase();
-                filtered = filtered.filter((item) =>
-                    (item.title && item.title.toLowerCase().includes(searchTermLower)) ||
-                    (item.description && item.description.toLowerCase().includes(searchTermLower)) ||
-                    (item.tags && item.tags.some((tag) => tag.toLowerCase().includes(searchTermLower)))
-                );
+    // ✅ Filter media items dynamically from Redux state based on `searchTerm`
+    const filteredMediaItems = mediaItems.filter((item) => {
+        if (!searchTerm.trim()) return true;
+
+        const searchLower = searchTerm.toLowerCase();
+        return (
+            (item.title && item.title.toLowerCase().includes(searchLower)) ||
+            (item.description && item.description.toLowerCase().includes(searchLower)) ||
+            (item.file_caption && item.file_caption.toLowerCase().includes(searchLower)) || // Include file_caption search
+            (item.tags && item.tags.some((tag) => tag.toLowerCase().includes(searchLower)))
+        );
+    });
+
+    // ✅ Wrap `handleDeleteFile` in `useCallback`
+    const handleDeleteFile = useCallback(
+        async (fileId: number | undefined) => {
+            if (!fileId) {
+                console.error("fileId is required and must not be undefined.");
+                return;
             }
 
-            setFilteredMediaItems(filtered);
-        };
+            Modal.confirm({
+                title: "Are you sure you want to delete this file?",
+                content: "Once deleted, this action cannot be undone!",
+                okText: "Delete",
+                cancelText: "Cancel",
+                okType: "danger",
+                onOk: async () => {
+                    try {
+                        await dispatch(deleteMediaItem(fileId)).unwrap();
+                        message.success("File deleted successfully.");
+                    } catch (error) {
+                        console.error("Error deleting file:", error);
+                        message.error("Failed to delete the file. Please try again.");
+                    }
+                },
+            });
+        },
+        [dispatch]
+    );
 
-        applyFilters();
-    }, [searchTerm, mediaItems]);
+    // Infinite scroll handler
+    const handleInfiniteScroll = useCallback(() => {
+        // Check if we're near the bottom of the page and loading more content is possible
+        if (nextUrl && !isFetchingMore && !isEndOfList) {
+            const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
 
-    const handleSearch = (value: string) => setSearchTerm(value);
-
-    // A wrapper function to handle file deletion
-    const handleDeleteFile = async (fileId: number | undefined) => {
-        if (!fileId) {
-            console.log("fileId is required and must not be undefined.")
+            if (scrollTop + clientHeight >= scrollHeight - 50) {
+                dispatch(fetchMoreGalleryItems(nextUrl)); // Load more
+            }
         }
+    }, [nextUrl, isFetchingMore, isEndOfList, dispatch]);
 
-        // Show a confirmation pop-up before proceeding
-        Modal.confirm({
-            title: "Are you sure you want to delete this file?",
-            content: "Once deleted, this action cannot be undone!",
-            okText: "Delete",
-            cancelText: "Cancel",
-            okType: "danger",
-            onOk: async () => {
-                try {
-                    // Call deleteFileFromAPI to delete the file
-                    const successMessage = await deleteFile(fileId);
+    // Set up scroll listener
+    useEffect(() => {
+        window.addEventListener("scroll", handleInfiniteScroll);
+        return () => {
+            window.removeEventListener("scroll", handleInfiniteScroll);
+        };
+    }, [handleInfiniteScroll]);
 
-                    // Update the state to remove the deleted file
-                    const updatedMediaItems = filteredMediaItems.filter(
-                        (item) => item.file_id !== fileId
-                    );
-                    setFilteredMediaItems(updatedMediaItems);
+    // Configure action buttons
+    const getActionButtons = useCallback(
+        (item: MediaItem, index: number) => {
+            const buttons = [
+                {
+                    btn_key: `interactionPanel-${index}`,
+                    btn: <InteractionComponent file={item} />,
+                },
+            ];
 
-                    // If mediaItems is maintained globally, update that too
-                    const updatedOriginalItems = mediaItems.filter(
-                        (item) => item.file_id !== fileId
-                    );
+            if (item.user_id === loggedInUserId) {
+                buttons.push({
+                    btn_key: "removeItem",
+                    btn: (
+                        <Button
+                            icon={<DeleteOutlined style={{ color: "red" }} />}
+                            onClick={() => handleDeleteFile(item.file_id)}
+                        />
+                    ),
+                });
+            }
 
-                    // Set globally scoped items as well to stay in sync
-                    setFilteredMediaItems(updatedOriginalItems);
-
-                    // Show success message to the user
-                    message.success(successMessage);
-                } catch (error) {
-                    console.error("Error deleting file:", error);
-                    message.error(
-                        "Failed to delete the file. Please try again or contact support."
-                    );
-                }
-            },
-        });
-    };
+            return buttons;
+        },
+        [loggedInUserId, handleDeleteFile]
+    );
 
     return (
         <div className="gallery-tab">
-            <div className="search-and-popular-tags">
-                <Search
-                    placeholder="Search by tag, title, or description"
-                    onSearch={handleSearch}
-                    onChange={(e) => handleSearch(e.target.value)}
-                    allowClear
-                    value={searchTerm}
-                    style={{ marginBottom: 16, width: '100%' }}
-                />
-            </div>
+            {isLoadingInitial ? (
+                <Spin />
+            ) : (
+                <>
+                    <Masonry
+                        maxCols={3}
+                        minCols={1}
+                        maxColWidth={300}
+                        minColWidth={200}
+                        gap={16}
+                        items={filteredMediaItems}
+                        btnConfig={filteredMediaItems.map((item, index) => getActionButtons(item, index))}
+                    />
 
-            <Masonry
-                maxCols={3}
-                minCols={1}
-                maxColWidth={300}
-                minColWidth={200}
-                gap={16}
-                items={filteredMediaItems}
-                btnConfig={
-                    filteredMediaItems.map((item, index) => {
-                        // Start configuring dynamic button actions
-                        const buttons = [
-                            {
-                                btn_key: `interactionPanel-${index}`, // Fixed btn_key template syntax
-                                btn: <InteractionComponent file={item} />, // Ensure proper file prop structure
-                            },
-                        ];
-
-                        // Add the 'removeItem' button only if the user owns the item
-                        if (item.user_id === loggedInUserId) {
-                            buttons.push({
-                                btn_key: 'removeItem',
-                                btn: (
-                                    <Button
-                                        icon={<DeleteOutlined style={{ color: "red" }} />}
-                                        onClick={() => handleDeleteFile(item.file_id)}
-                                    />
-                                ),
-                            });
-                        }
-
-                        return buttons;
-                    })
-                }
-            />
-
-            <div className="gallery-footer">
-                {isFetchingMore ? (
-                    <Spin />
-                ) : (
-                    isEndOfList && <p>All images are displayed</p>
-                )}
-            </div>
+                    <div className="gallery-footer">
+                        {isFetchingMore && <Spin />}
+                        {!isEndOfList && <p className="scroll-hint">Keep scrolling up for more media...</p>}
+                        {isEndOfList && <p>All media items are displayed</p>}
+                    </div>
+                </>
+            )}
         </div>
     );
 };

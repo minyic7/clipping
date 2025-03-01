@@ -24,6 +24,7 @@ export interface Item {
     width?: number; // Width of the media (e.g., for images/videos)
     title: string; // Title of the file (optional)
     description: string; // Description of the file
+    file_caption?: string; // AI generated caption for content based search
     created_datetime?: string; // ISO string representation of when the interaction was created
     tags?: string[]; // Array of tags associated with the file
     raw?: object; // Holds the raw file object for handling uploads

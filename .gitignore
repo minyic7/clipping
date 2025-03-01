@@ -2,12 +2,11 @@
 .idea/
 /backend/.idea/
 
-# Ignore postgre pass detail
-/backend/clipping/.pg_service.conf
-/backend/clipping/.my_pgpass
-
 # Ignore pem files
 *.pem
 
 # Ignore cloudflared secrete file
 ui/.cloudflared/
+
+# secrets
+/backend/clipping/.env

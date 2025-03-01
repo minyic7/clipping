@@ -33,6 +33,7 @@ export interface FileApiResponseItem {
     created_datetime: string;
     last_updated_datetime: string;
     description: string;
+    file_caption?: string;
     user_id: number;
     url: string;
 }

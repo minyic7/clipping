@@ -1,19 +1,22 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { FileInteractionsSummary, FileComment, Item } from "@/components/types/types";
-import { deleteInteraction, fetchInteractions, interact } from "@/services/services";
-import { getUserID, getUsername } from "@/services/setup.ts";
-import { HeartOutlined, HeartFilled } from "@ant-design/icons";
-import { Typography, Spin, Button, Input, Space } from "antd";
+import React, {useState, useEffect, useCallback} from "react";
+import {useSelector} from "react-redux";
+import {RootState} from "@/store/store.ts"; // Adjust the import to point to your store
+import {FileInteractionsSummary, FileComment, Item} from "@/components/types/types";
+import {deleteInteraction, fetchInteractions, interact} from "@/services/services";
+import {getUserID, getUsername} from "@/services/setup.ts";
+import {HeartOutlined, HeartFilled} from "@ant-design/icons";
+import {Typography, Spin, Button, Input, Space} from "antd";
 import './InteractionComponent.less'
 
-const { Text } = Typography;
+const {Text} = Typography;
 
 // Likes Component
 const LikesSection: React.FC<{
     totalLikes: number;
     userLiked: boolean;
     onToggleLike: () => Promise<void>;
-}> = ({ totalLikes, userLiked, onToggleLike }) => {
+    isGuestUser: boolean;
+}> = ({totalLikes, userLiked, onToggleLike, isGuestUser}) => {
     return (
         <Space>
             <Button
@@ -21,12 +24,13 @@ const LikesSection: React.FC<{
                 shape="circle"
                 icon={
                     userLiked ? (
-                        <HeartFilled style={{ color: "red", fontSize: "16px" }} />
+                        <HeartFilled style={{color: "red", fontSize: "16px"}}/>
                     ) : (
-                        <HeartOutlined style={{ fontSize: "16px" }} />
+                        <HeartOutlined style={{fontSize: "16px"}}/>
                     )
                 }
                 onClick={onToggleLike}
+                disabled={isGuestUser}
             />
             <Text className="likes-count">
                 {totalLikes} {totalLikes === 1 ? "Like" : "Likes"}
@@ -35,13 +39,15 @@ const LikesSection: React.FC<{
     );
 };
 
+// Comments Component
 const CommentsSection: React.FC<{
     comments: FileComment[];
     newComment: string;
     onCommentChange: (value: string) => void;
     onSubmitComment: (e: React.FormEvent) => Promise<void>;
     onDeleteComment: (interactionID: number) => Promise<void>;
-}> = ({ comments, newComment, onCommentChange, onSubmitComment, onDeleteComment }) => {
+    isGuestUser: boolean;
+}> = ({comments, newComment, onCommentChange, onSubmitComment, onDeleteComment, isGuestUser}) => {
     // Fetch the user ID saved in local storage using `getUserId()`
     const loggedInUserId = parseInt(getUserID() || "-1", 10); // Convert to integer
 
@@ -52,18 +58,34 @@ const CommentsSection: React.FC<{
                 {comments.length > 0 ? (
                     comments.map((comment) => (
                         <div className="comment-item" key={comment.interaction_id}>
-                            {/* Delete button at the top-right */}
-                            <Button
-                                type="text"
-                                danger
-                                className="delete-comment-btn"
-                                onClick={() => onDeleteComment(comment.interaction_id)}
-                                disabled={comment.user_id !== loggedInUserId} // Disable if not the user's comment
-                            >
-                                Delete
-                            </Button>
-                            <div className="comment-username">{comment.username}</div>
-                            <div className="comment-description">{comment.comment}</div>
+                            {/* User Avatar (Optional) */}
+                            <div className="avatar-username">
+                                <div className="comment-avatar">
+                                    <span className="avatar-placeholder">
+                                        {comment.username.charAt(0).toUpperCase()}
+                                    </span>
+                                </div>
+                                <span className="comment-username">{comment.username}</span>
+                            </div>
+
+                            {/* Comment Content */}
+                            <div className="comment-content">
+                                <div className="comment-header">
+
+                                </div>
+                                <div className="comment-description">{comment.comment}</div>
+                            </div>
+                            {/* Delete Button */}
+                            {!isGuestUser && comment.user_id === loggedInUserId && (
+                                <Button
+                                    type="text"
+                                    danger
+                                    className="delete-comment-btn"
+                                    onClick={() => onDeleteComment(comment.interaction_id)}
+                                >
+                                    Delete
+                                </Button>
+                            )}
                             <div className="comment-time">
                                 {new Date(comment.created_datetime).toLocaleString()}
                             </div>
@@ -74,29 +96,38 @@ const CommentsSection: React.FC<{
                 )}
             </div>
 
-            {/* Add New Comment */}
+            {/* Add New Comment Section */}
             <div className="add-comment-section">
                 <Input.TextArea
+                    className="add-comment-input"
                     rows={3}
                     value={newComment}
                     placeholder="Add a comment..."
                     onChange={(e) => onCommentChange(e.target.value)}
+                    disabled={isGuestUser}
                 />
                 <Button
                     type="primary"
                     onClick={onSubmitComment as React.MouseEventHandler}
-                    disabled={!newComment.trim()}
+                    disabled={isGuestUser || !newComment.trim()}
                     className="submit-comment-btn"
                 >
                     Comment
                 </Button>
             </div>
+
+            {/* Notification for Guest Users */}
+            {isGuestUser ? (
+                <a href="/login" className="guest-login-link">
+                    Login to like or add a comment.
+                </a>
+            ) : null}
         </div>
     );
 };
 
 // Main InteractionComponent
-const InteractionComponent: React.FC<{ file: Item }> = ({ file }) => {
+const InteractionComponent: React.FC<{ file: Item }> = ({file}) => {
     const [totalLikes, setTotalLikes] = useState<number>(0);
     const [userLiked, setUserLiked] = useState<boolean>(false);
     const [comments, setComments] = useState<FileComment[]>(file.file_interactions?.comments || []);
@@ -104,6 +135,11 @@ const InteractionComponent: React.FC<{ file: Item }> = ({ file }) => {
     const [fileInteractionsSummary, setFileInteractionsSummary] =
         useState<FileInteractionsSummary>();
     const [loading, setLoading] = useState<boolean>(true);
+
+    // Fetch `isGuestUser` from Redux Store
+    const isGuestUser = useSelector((state: RootState) => state.user.isGuestUser);
+    console.log('isGuestUser', isGuestUser);
+    console.log('user_id',  useSelector((state: RootState) => state.user.username))
 
     const fetchAllInteractions = useCallback(async () => {
         try {
@@ -194,15 +230,7 @@ const InteractionComponent: React.FC<{ file: Item }> = ({ file }) => {
     if (loading) {
         return (
             <div className="interaction-component">
-                <Spin size="large" className="loading-spinner" />
-            </div>
-        );
-    }
-
-    if (loading) {
-        return (
-            <div className="interaction-component">
-                <Spin size="large" className="loading-spinner" />
+                <Spin size="large" className="loading-spinner"/>
             </div>
         );
     }
@@ -213,6 +241,7 @@ const InteractionComponent: React.FC<{ file: Item }> = ({ file }) => {
             <LikesSection
                 totalLikes={totalLikes}
                 userLiked={userLiked}
+                isGuestUser={isGuestUser}
                 onToggleLike={handleLikeToggle}
             />
 
@@ -223,6 +252,7 @@ const InteractionComponent: React.FC<{ file: Item }> = ({ file }) => {
                 onCommentChange={setNewComment}
                 onSubmitComment={handleCommentSubmit}
                 onDeleteComment={handleDeleteComment} // Pass delete handler
+                isGuestUser={isGuestUser}
             />
         </div>
     );

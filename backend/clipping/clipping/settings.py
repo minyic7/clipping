@@ -21,12 +21,16 @@ from decouple import config
 TOKEN_VALUE = config('TOKEN_VALUE')
 ACCESS_KEY_ID = config('ACCESS_KEY_ID')
 SECRET_ACCESS_KEY = config('SECRET_ACCESS_KEY')
+GPT_API_KEY = config('GPT_API_KEY')
 
 # Ensure that variables are available
 if not TOKEN_VALUE or not ACCESS_KEY_ID or not SECRET_ACCESS_KEY:
     raise ValueError(
         "One or more environment variables are missing. Please set TOKEN_VALUE, ACCESS_KEY_ID, and SECRET_ACCESS_KEY.")
 
+# Ensure GPT_API_KEY is available
+if not GPT_API_KEY:
+    raise ValueError("GPT_API_KEY is not set.")
 
 # R2 Setting
 ACCOUNT_ID = 'f56837f054997f21174c350c33df8c1a'
@@ -207,21 +211,48 @@ ALLOWED_HOSTS = ['*']  # TODO: purchase a domain name, and only allow that domai
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
+
+    'formatters': {
+        # Verbose format for detailed logs
+        'verbose': {
+            'format': '[{asctime}] {levelname} {name} {message}',
+            'style': '{',
         },
     },
-    # 'root': {
-    #     'handlers': ['console'],
-    #     'level': 'WARNING',
-    # },
+
+    'handlers': {
+        # Console handler to print logs to the terminal
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+
     'loggers': {
-        # 'django.db.backends' require DEBUG=True
-        'django.db.backends': {
+        # Custom application logger
+        'my_logger': {
             'handlers': ['console'],
             'level': 'DEBUG',
+            'propagate': False,  # Prevent duplicate logs
+        },
+
+        # Database query logs (Consider using INFO instead of DEBUG)
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'INFO',  # Changed from DEBUG to INFO
             'propagate': False,
         },
+
+        # General Django logs
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',  # Keeping INFO to avoid unnecessary logs
+            'propagate': False,  # Changed to False to avoid duplicate logging
+        },
+    },
+
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',  # Catch-all logger, useful for debugging
     },
 }

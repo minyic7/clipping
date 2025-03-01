@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Tag, Spin } from 'antd'; // Import Spin for the loader
+import { Modal, Tag, Spin } from 'antd'; // Import Tooltip from Ant Design
 import '@/components/common/card/MediaCard.less';
 import { MediaItem } from '@/components/types/types.ts';
 
@@ -10,6 +10,7 @@ export interface ButtonConfig {
 
 export interface MediaCardProps extends MediaItem {
     btnConfig?: ButtonConfig[];
+    // file_caption?: string; // Optional file caption
 }
 
 const MediaCard: React.FC<MediaCardProps> = ({
@@ -17,6 +18,7 @@ const MediaCard: React.FC<MediaCardProps> = ({
                                                  src,
                                                  title,
                                                  description,
+                                                 // file_caption, // Add file_caption prop
                                                  created_datetime,
                                                  width,
                                                  tags,
@@ -35,6 +37,8 @@ const MediaCard: React.FC<MediaCardProps> = ({
         e.stopPropagation(); // Prevent any other click event
         setIsModalVisible(false);
     };
+
+    // console.log('file_caption', file_caption);
 
     return (
         <div
@@ -63,7 +67,6 @@ const MediaCard: React.FC<MediaCardProps> = ({
             )}
 
             <div className={`media-info ${hovered ? 'hovered' : ''}`}>
-                <p style={{ marginBottom: '10px' }}>{description}</p>
                 {btnConfig && (
                     <div className="top-right-buttons">
                         {btnConfig
@@ -79,15 +82,6 @@ const MediaCard: React.FC<MediaCardProps> = ({
                             ))}
                     </div>
                 )}
-                {tags && (
-                    <div className="tags-container">
-                        {tags.map((tag, index) => (
-                            <Tag key={index} color="blue">
-                                {tag}
-                            </Tag>
-                        ))}
-                    </div>
-                )}
             </div>
 
             <Modal
@@ -97,15 +91,34 @@ const MediaCard: React.FC<MediaCardProps> = ({
                 onCancel={handleCloseModal}
                 destroyOnClose
             >
-                {file_type === 'image' ? (
-                    <img src={src} alt={title} style={{ width: '100%' }} />
-                ) : (
-                    <video controls style={{ width: '100%' }}>
-                        <source src={src} type="video/mp4" />
-                        Your browser does not support the video tag.
-                    </video>
+                {/* Media (Image or Video) with Tooltip */}
+                <div
+                    className="modal-media-container"
+                    style={{ position: 'relative', width: '100%' }}
+                >
+                    {file_type === 'image' ? (
+                        <img
+                            src={src}
+                            alt={title}
+                            style={{ width: '100%' }}
+                        />
+                    ) : (
+                        <video
+                            controls
+                            style={{ width: '100%' }}
+                        >
+                            <source src={src} type="video/mp4" />
+                            Your browser does not support the video tag.
+                        </video>
+                    )}
+                </div>
+
+                {/* Description (Always visible below the media) */}
+                {description && description.trim() !== '' && (
+                    <p className="modal-description">{description}</p>
                 )}
-                {description && description.trim() !== '' && <p>{description}</p>}
+
+                {/* Tags */}
                 {tags && (
                     <div className="tags-container">
                         {tags.map((tag, index) => (
@@ -115,11 +128,15 @@ const MediaCard: React.FC<MediaCardProps> = ({
                         ))}
                     </div>
                 )}
+
+                {/* Created Datetime */}
                 {created_datetime && (
                     <div className="created-datetime">
                         Created on: {new Date(created_datetime).toLocaleString()}
                     </div>
                 )}
+
+                {/* Buttons */}
                 {btnConfig && (
                     <div className="buttons">
                         {btnConfig

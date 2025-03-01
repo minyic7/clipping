@@ -1,0 +1,85 @@
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap; /* Allow child items to wrap when space is constrained */
+  align-items: center;
+  justify-content: flex-start; /* Space between album button, search bar, and upload/login buttons */
+  gap: 10px;
+  padding:0;
+  //height: 56px; /* Consistent header height */
+  position: sticky;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+  background-color: #ffffff;
+  border-bottom: 1px solid #d9d9d9;
+}
+
+.album-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: bold;
+  color: #000000;
+  transition: all 0.3s ease-in-out;
+  padding: 4px 8px;
+  height: 40px;
+
+  &:hover {
+    color: #1890ff; /* Blue highlight */
+  }
+
+  .album-icon {
+    font-size: 18px;
+  }
+}
+
+.search-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 250px;
+  margin-right: 10px;
+}
+
+.upload-button-icon,
+.login-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 4px 8px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #000000;
+  background: none;
+  border: none;
+  height: 40px;
+
+  &.ant-btn-text:hover,
+  &:hover {
+    color: #52c41a; /* Green hover color */
+    background: none; /* No background on hover */
+  }
+}
+
+.login-button {
+  text-decoration: none;
+  font-weight: bold;
+  gap: 5px;
+  border: none;
+  background: none;
+
+  &:hover {
+    color: #1890ff; /* Blue hover color */
+    text-decoration: underline;
+  }
+
+  .login-icon {
+    font-size: 18px;
+  }
+}

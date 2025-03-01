@@ -121,110 +121,99 @@ const UploadFileTab: React.FC<UploadFileTabProps> = ({
     const handleFileInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
             await processFiles(event.target.files);
+
+            // Reset the file input value to allow re-selecting the same file
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
         }
     };
 
     const handleSubmit = async () => {
-        const preSignedUrls: PresignedUrl[] = await getPreSignedUrls(items);
-
-        // Notify for missing pre-signed URLs
-        if (!preSignedUrls || preSignedUrls.length === 0) {
-            console.error("No pre-signed URLs received. Upload cannot continue.");
-            return;
-        }
-
-        // Function to handle the upload of a single item
-        const uploadItem = async (item: Item): Promise<UploadStatus> => {
-            const preSignedUrl = preSignedUrls.find(url => url.original_object_key === item.title);
-
-            if (!preSignedUrl) {
-                console.error(`Pre-signed URL for item with title "${item.title}" not found.`);
-                return {
-                    object_key: item.title,
-                    status: 'error',
-                    errorMessage: 'Pre-signed URL not found',
-                } as UploadStatus;
-            }
-
-            // Notify user that the file is being uploaded
-            setItems(prevItems => prevItems.map(i =>
-                i.title === item.title ? { ...i, status: 'uploading' } : i
-            ));
-
-            try {
-                const response = await axios.put(preSignedUrl.pre_signed_url, item.raw, {
-                    headers: {
-                        'Content-Type': preSignedUrl.content_type
-                    },
-                    timeout: 360000
-                });
-
-                console.log(`Item "${item.title}" uploaded successfully.`);
-
-                // Remove item from the list after successful upload
-                setItems(prevItems => prevItems.filter(i => i.title !== item.title));
-
-                return {
-                    object_key: preSignedUrl.unique_object_key,
-                    status: 'success',
-                    uploaded_file: { ...item, object_key: preSignedUrl.unique_object_key },
-                    httpStatusCode: response.status,
-                    responseMessage: response.statusText
-                } as UploadStatus;
-            } catch (error) {
-                if (axios.isAxiosError(error)) {
-                    console.error(`Error uploading item "${item.title}":`, error);
-
-                    return {
-                        object_key: preSignedUrl.unique_object_key,
-                        status: 'error',
-                        httpStatusCode: error.response?.status,
-                        responseMessage: error.response?.statusText,
-                        errorCode: error.code,
-                        errorMessage: error.message
-                    } as UploadStatus;
-                } else {
-                    console.error(`Unknown error uploading item "${item.title}":`, error);
-
-                    return {
-                        object_key: preSignedUrl.unique_object_key,
-                        status: 'error',
-                        errorMessage: 'Unknown error occurred'
-                    } as UploadStatus;
-                }
-            }
-        };
-
         try {
-            // Creating a list of promises to upload files in parallel
-            const uploadPromises = items.map(item => uploadItem(item));
+            // Fetch pre-signed URLs for all items
+            const preSignedUrls: PresignedUrl[] = await getPreSignedUrls(items);
 
-            // Wait for all uploads to settle (resolved or rejected)
-            const uploadResults = await Promise.allSettled(uploadPromises);
+            // Validate received pre-signed URLs
+            if (!preSignedUrls.length) {
+                console.error("No pre-signed URLs received. Upload cannot continue.");
+                return;
+            }
 
+            // Function to upload a single item
+            const uploadItem = async (item: Item): Promise<UploadStatus> => {
+                const preSignedUrl = preSignedUrls.find(url => url.original_object_key === item.title);
+
+                if (!preSignedUrl) {
+                    console.error(`Pre-signed URL for item "${item.title}" not found.`);
+                    return { object_key: item.title, status: 'error', errorMessage: 'Pre-signed URL not found' };
+                }
+
+                // Mark item as uploading
+                setItems(prevItems =>
+                    prevItems.map(i => (i.title === item.title ? { ...i, status: 'uploading' } : i))
+                );
+
+                try {
+                    // Upload file
+                    const response = await axios.put(preSignedUrl.pre_signed_url, item.raw, {
+                        headers: { 'Content-Type': preSignedUrl.content_type },
+                        timeout: 360000,
+                    });
+
+                    console.log(`Item "${item.title}" uploaded successfully.`);
+
+                    // Remove uploaded item from state
+                    setItems(prevItems => prevItems.filter(i => i.title !== item.title));
+
+                    return {
+                        object_key: preSignedUrl.unique_object_key,
+                        status: 'success',
+                        uploaded_file: { ...item, object_key: preSignedUrl.unique_object_key },
+                        httpStatusCode: response.status,
+                        responseMessage: response.statusText,
+                    };
+                } catch (error) {
+                    console.error(`Error uploading item "${item.title}":`, error);
+                    return {
+                        object_key: preSignedUrl.unique_object_key,
+                        status: 'error',
+                        httpStatusCode: axios.isAxiosError(error) ? error.response?.status : undefined,
+                        responseMessage: axios.isAxiosError(error) ? error.response?.statusText : undefined,
+                        errorCode: axios.isAxiosError(error) ? error.code : undefined,
+                        errorMessage: axios.isAxiosError(error) ? error.message : 'Unknown error occurred',
+                    };
+                }
+            };
+
+            // Upload all items in parallel
+            const uploadResults = await Promise.allSettled(items.map(uploadItem));
+
+            // Separate successful and failed uploads
             const successfulUploads = uploadResults
-                .filter(result => result.status === "fulfilled" && (result as PromiseFulfilledResult<UploadStatus>).value.status === "success")
+                .filter(result => result.status === 'fulfilled' && result.value.status === 'success')
                 .map(result => (result as PromiseFulfilledResult<UploadStatus>).value);
 
             const failedUploads = uploadResults
-                .filter(result => result.status === "fulfilled" && (result as PromiseFulfilledResult<UploadStatus>).value.status === "error")
+                .filter(result => result.status === 'fulfilled' && result.value.status === 'error')
                 .map(result => (result as PromiseFulfilledResult<UploadStatus>).value);
 
-            // Update the state to reflect the upload statuses
+            // Update upload status in state
             setUploadStatuses([...successfulUploads, ...failedUploads]);
 
-            // Post successful uploads to your backend server
-            if (successfulUploads.length > 0) {
+            // Post successful uploads to backend
+            if (successfulUploads.length) {
                 await postUploadedItems(successfulUploads);
             }
 
-            // Log the final statuses
+            // Log final statuses
             console.log("Upload completed. Successful uploads:", successfulUploads);
             console.log("Failed uploads:", failedUploads);
         } catch (error) {
             console.error("Error during parallel uploads:", error);
         }
     };
+
 
     const handleRemoveItem = (index: number) => {
         setItems(prevItems => {

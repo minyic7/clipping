@@ -1,0 +1,104 @@
+generate_tags:
+  prompt: |
+    "Analyze the given media and generate an extensive list of relevant tags in **both English and Chinese (Simplified)**. 
+
+    ### **Strict Output Format:**
+    - The response must be **a JSON-style array** enclosed in square brackets.
+    - Each tag must appear **once in English and once in Chinese** as separate list elements.
+    - Do not include any additional text, headers, explanations, or formatting such as markdown or code blocks.
+    - Just return the plain list in JSON format.
+    
+    ### **Tag Generation Rules:**
+    - **Extract meaningful details from the image**, covering:
+      - **Main subject(s)** (e.g., "Man", "Woman", "Dog", "Child", "Couple", "Group of people")
+      - **Facial expressions & emotions** (e.g., "Happy", "Serious", "Smiling", "Sad", "Excited")
+      - **Physical attributes** (e.g., "Long hair", "Beard", "Blonde hair", "Blue eyes", "Freckles")
+      - **Clothing & accessories** (e.g., "T-shirt", "Sunglasses", "Backpack", "Hat", "Casual outfit")
+      - **Actions & poses** (e.g., "Running", "Jumping", "Reading a book", "Holding a coffee cup")
+      - **Artistic style** (e.g., "Black and white", "Portrait photography", "Cinematic lighting")
+      - **Setting & background** (e.g., "Beach", "Urban cityscape", "Mountain", "Indoor studio", "Neon lights")
+      - **Time of day & lighting conditions** (e.g., "Golden hour", "Nighttime", "Artificial lighting", "Soft shadows")
+      - **Mood & theme** (e.g., "Romantic", "Dramatic", "Minimalist", "Mystical", "Elegant")
+      - **Cultural or symbolic elements** (e.g., "Traditional Chinese dress", "Street fashion", "Cherry blossoms")
+      - **Color scheme** (e.g., "Vibrant colors", "Monochrome", "Earth tones", "Pastel shades")
+      - **Photo quality & effects** (e.g., "HDR", "Blurred motion", "High contrast", "Soft focus", "Film grain")
+    
+    ### **Tag Quantity & Variability:**
+    - Provide **as many relevant tags as possible** to comprehensively describe the image.
+    - Ensure diversity in tagging by covering different aspects (subject, background, lighting, emotion, etc.).
+    - Avoid redundant or overly generic tags.
+    
+    ### **Example Response:**
+    [
+      "Portrait", "Young woman", "Smiling", "Long wavy hair", "Casual outfit", "Indoors", "Warm lighting", "Natural look", "Photography", "Fashion",
+      "肖像", "年轻女子", "微笑", "长卷发", "休闲服饰", "室内", "温暖灯光", "自然风格", "摄影", "时尚"
+    ]"
+
+  return_type: "list"
+
+generate_file_caption:
+  prompt: |
+    "Generate a **highly detailed, vivid, and context-aware description** of the given media for content-based search. The description should be written in **both English and Chinese (Simplified)** and should accurately capture all significant visual elements.
+
+    ### **🔹 Requirements for Description:**
+    - The response should be **two complete, well-structured paragraphs**: one in English and one in Chinese.
+    - Each description should be **engaging and highly descriptive**, rather than a generic summary.
+    - **Do not include any additional text, headers, explanations, formatting such as markdown, or code blocks.**
+    - Just return the description **plainly as a string**.
+    
+    ### **🔹 What to Capture in the Description:**
+    #### **1️⃣ Subjects & Objects**
+       - Identify the **main subjects** (people, animals, vehicles, nature, landmarks, objects).
+       - Include **specific attributes** (e.g., "an elderly man with a white beard", "a golden retriever playing in the park", "a sleek black sports car parked by the waterfront").
+    
+    #### **2️⃣ Actions & Interactions**
+       - Describe what is **happening in the image** (e.g., "A woman is running barefoot along the beach, leaving footprints in the wet sand").
+       - Include **expressions, gestures, or interactions** (e.g., "Two friends laughing as they clink their glasses at an outdoor café").
+       
+    #### **3️⃣ Environment & Setting**
+       - Specify whether the scene is **indoors or outdoors**, and describe the **exact location** (e.g., "A cozy bookstore with wooden bookshelves and warm yellow lights").
+       - Add details about **surroundings and background elements** (e.g., "Towering skyscrapers loom over a bustling city street filled with neon signs and moving cars").
+       
+    #### **4️⃣ Lighting & Atmosphere**
+       - Describe the **lighting conditions** (e.g., "Soft golden light filters through the autumn leaves, casting long shadows on the ground").
+       - Capture the **mood and tone** (e.g., "A quiet, melancholic ambiance fills the scene as fog rolls over the mountain").
+    
+    #### **5️⃣ Colors & Visual Details**
+       - Highlight **color contrasts and palettes** (e.g., "The deep blue of the ocean contrasts against the fiery orange hues of the sunset").
+       - Mention **textures and prominent elements** (e.g., "The rough texture of the ancient stone walls is visible under the dim lantern light").
+    
+    #### **6️⃣ Time of Day & Weather**
+       - Identify whether it’s **morning, afternoon, evening, or night**.
+       - Describe the **weather conditions** (e.g., "Raindrops create ripples in puddles on the city street, while people hurry by under umbrellas").
+    
+    #### **7️⃣ Theme & Overall Feeling**
+       - Convey the **overall theme** (e.g., "The image exudes nostalgia and warmth, as a grandmother knits beside a crackling fireplace").
+       - Capture the **emotional tone** (e.g., "A sense of adventure and freedom as a lone traveler hikes up a rugged mountain trail").
+    
+    ---
+    
+    ### **🔹 Example Responses:**
+    #### **Input:**  
+    *A woman in a flowing red dress walking through a field of lavender at sunset.*
+    
+    #### **Output:**  
+    **English:**  
+    *"A woman in a flowing red dress gracefully walks through an endless field of lavender. The golden hues of the setting sun bathe the landscape in warm light, highlighting the contrast between the deep purple blossoms and the rich red fabric. A gentle breeze rustles through the flowers, and she runs her fingers along the delicate petals as she walks, lost in thought. In the distance, rolling hills fade into a soft haze, adding to the dreamlike atmosphere."*  
+    
+    **Chinese (Simplified):**  
+    *"一名身穿飘逸红裙的女子优雅地穿行在一片无尽的薰衣草田中。落日的金色余晖洒满大地，使深紫色的花海与红色的裙摆形成鲜明对比。微风轻轻吹拂着花朵，她用指尖轻触娇嫩的花瓣，沉浸在自己的思绪中。远处的连绵群山笼罩在朦胧的薄雾中，增添了一种如梦似幻的氛围。"*
+    
+    ---
+    
+    #### **Input:**  
+    *A neon-lit street in Tokyo at night, filled with people walking under umbrellas in the rain.*
+    
+    #### **Output:**  
+    **English:**  
+    *"The bustling streets of Tokyo come alive under a mesmerizing display of neon lights reflecting off the rain-soaked pavement. Umbrellas dot the crowd as pedestrians navigate through the drizzle, their silhouettes illuminated by the vibrant hues of pink, blue, and yellow billboards. The air is filled with the distant chatter of street vendors and the soft patter of raindrops. In the background, a towering skyline stretches above the city, blending modernity with tradition in a spectacle of urban energy."*  
+    
+    **Chinese (Simplified):**  
+    *"东京繁华的街道在迷人的霓虹灯光下焕发出璀璨光彩，雨水洒落在人行道上，倒映出五光十色的绚丽色彩。行人撑着雨伞穿行在细雨中，他们的身影被粉色、蓝色和黄色的广告牌映照得色彩斑斓。空气中弥漫着小贩的叫卖声与雨滴落地的轻响。远处，高楼大厦耸立在城市上空，现代与传统交织，展现出东京独特的都市魅力。"*
+
+    **Return only the generated description in the format specified above. Do not include extra explanations or headers.**"
+  return_type: "string"
