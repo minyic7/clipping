@@ -1,12 +1,11 @@
-
+// App Header Styling
 .app-header {
   display: flex;
-  flex-wrap: wrap; /* Allow child items to wrap when space is constrained */
   align-items: center;
-  justify-content: flex-start; /* Space between album button, search bar, and upload/login buttons */
+  justify-content: flex-start;
+  flex-wrap: wrap; /* Allow content to wrap to the next row */
   gap: 10px;
-  padding:0;
-  //height: 56px; /* Consistent header height */
+  padding: 0;
   position: sticky;
   top: 0;
   width: 100%;
@@ -15,21 +14,23 @@
   border-bottom: 1px solid #d9d9d9;
 }
 
+
+// Album Button Styling
 .album-button {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  text-decoration: none;
   font-size: 16px;
   font-weight: bold;
-  color: #000000;
-  transition: all 0.3s ease-in-out;
+  color: #000;
   padding: 4px 8px;
   height: 40px;
+  text-decoration: none;
+  transition: color 0.3s;
 
   &:hover {
-    color: #1890ff; /* Blue highlight */
+    color: #1890ff;
   }
 
   .album-icon {
@@ -37,6 +38,7 @@
   }
 }
 
+// Search Bar Container
 .search-container {
   flex: 1;
   display: flex;
@@ -46,40 +48,96 @@
   margin-right: 10px;
 }
 
-.upload-button-icon,
+// Upload Button (Fix hover issues with additional specificity)
+.upload-button-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #000; /* Default text color */
+  height: 40px;
+  border: none; /* Remove any border styling */
+  background: none; /* Ensure no background */
+  cursor: pointer; /* Pointer cursor to indicate action */
+
+  // Force your hover style to apply over Ant Design's defaults
+  &:hover,
+  &.ant-btn:hover,
+  &.ant-btn-text:hover {
+    color: #1890ff !important; /* Green hover color */
+    background: none !important; /* No background on hover */
+  }
+}
+
+// Login Button Styling
 .login-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  padding: 4px 8px;
-  font-size: 14px;
-  font-weight: bold;
-  color: #000000;
-  background: none;
-  border: none;
-  height: 40px;
-
-  &.ant-btn-text:hover,
-  &:hover {
-    color: #52c41a; /* Green hover color */
-    background: none; /* No background on hover */
-  }
-}
-
-.login-button {
+  gap: 4px;
   text-decoration: none;
   font-weight: bold;
-  gap: 5px;
-  border: none;
-  background: none;
+  color: #000; // Default color
+  transition: color 0.2s ease-in-out, text-decoration 0.2s;
 
   &:hover {
-    color: #1890ff; /* Blue hover color */
-    text-decoration: underline;
+    color: #1890ff; // Hover color
+    text-decoration: underline; // Hover underline
   }
 
   .login-icon {
     font-size: 18px;
+  }
+}
+
+// User Profile Dropdown Styling
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  height: 40px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background-color 0.3s ease-in-out;
+
+  &:hover {
+    background-color: transparent !important; /* Prevents default grey background */
+  }
+
+  &.ant-dropdown-trigger {
+    background: none !important; /* Ensures no forced background from Ant Design */
+  }
+}
+
+// User Avatar Styling
+.user-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #d9d9d9;
+  overflow: hidden;
+
+  svg {
+    width: 20px;
+    height: 20px;
+    color: #8c8c8c;
+  }
+}
+
+// Username Styling
+.username {
+  font-size: 14px;
+  font-weight: bold;
+  color: #000;
+  transition: color 0.3s;
+
+  &:hover {
+    color: #1890ff;
   }
 }

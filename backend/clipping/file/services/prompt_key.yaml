@@ -9,7 +9,7 @@ generate_tags:
     - Just return the plain list in JSON format.
     
     ### **Tag Generation Rules:**
-    - **Extract meaningful details from the image**, covering:
+    - **Extract meaningful details from the image**, where applicable:
       - **Main subject(s)** (e.g., "Man", "Woman", "Dog", "Child", "Couple", "Group of people")
       - **Facial expressions & emotions** (e.g., "Happy", "Serious", "Smiling", "Sad", "Excited")
       - **Physical attributes** (e.g., "Long hair", "Beard", "Blonde hair", "Blue eyes", "Freckles")

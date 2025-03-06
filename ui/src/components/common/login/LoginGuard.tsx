@@ -31,7 +31,9 @@ const LoginGuard: React.FC<LoginGuardProps> = ({ reminderMessage, children, onAu
     };
 
     const handleGuestLogin = () => {
+        console.log('handle guest login')
         setIsModalVisible(false);
+        console.log('close modal')
     }
 
     return (

@@ -34,6 +34,8 @@ const LoginComponent: React.FC<LoginComponentProps> = ({redirectPath = "/gallery
         await dispatch(guestLoginThunk()).unwrap();
         if (onGuestLogin) {
             onGuestLogin();
+        } else {
+            navigate(redirectPath);
         }
     };
 
